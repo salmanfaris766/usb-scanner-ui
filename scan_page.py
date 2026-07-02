@@ -15,7 +15,7 @@ COLORS = {
     "accent": "#00E5FF",
     "success": "#22C55E",
     "warning": "#FACC15",
-    "danger": "#FF4D4D",
+    "danger": "#FF4D4D",  //kjhb
     "text_primary": "#FFFFFF",
     "text_secondary": "rgba(255, 255, 255, 160)",
     "glass_bg": "rgba(25, 25, 25, 220)", 
