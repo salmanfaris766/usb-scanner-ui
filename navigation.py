@@ -102,7 +102,7 @@ class NavButton(QPushButton):
         if is_active:
             self.hover_anim.stop()
             self.setFixedSize(140, 64)
-            bg = f"{accent}45" if len(accent) == 7 else "rgba(0, 229, 255, 45)"
+            bg = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 229, 255, 75), stop:1 rgba(0, 229, 255, 30))"
             border = f"1px solid {accent}"
             color = text_primary
             icon_color = QColor(accent)
@@ -150,11 +150,6 @@ class BottomNavigationBar(QFrame):
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setFixedSize(620, 84)
         
-        self.shadow = QGraphicsDropShadowEffect(self)
-        self.shadow.setBlurRadius(45)
-        self.shadow.setColor(QColor(0, 229, 255, 50))
-        self.setGraphicsEffect(self.shadow)
-        
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(12, 0, 12, 0)
         self.layout.setSpacing(10)
@@ -190,6 +185,6 @@ class BottomNavigationBar(QFrame):
 
     def _apply_nav_theme(self):
         if theme_manager.current_theme == "light":
-            self.setStyleSheet("QFrame { background: rgba(255, 255, 255, 230); border: 1px solid rgba(0, 0, 0, 8); border-radius: 42px; }")
+            self.setStyleSheet("QFrame { background: rgba(255, 255, 255, 210); border: 1px solid rgba(0, 0, 0, 15); border-radius: 42px; }")
         else:
-            self.setStyleSheet("QFrame { background: rgba(20, 20, 20, 240); border: 1px solid rgba(255, 255, 255, 15); border-radius: 42px; }")
+            self.setStyleSheet("QFrame { background: rgba(13, 13, 13, 180); border: 1px solid rgba(255, 255, 255, 20); border-radius: 42px; }")

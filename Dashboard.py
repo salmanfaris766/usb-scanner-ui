@@ -587,7 +587,7 @@ class DeviceClassificationCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(32, 32, 32, 32)
         layout.setSpacing(10)
         
         self.lbl_title = QLabel("DEVICE CLASSIFICATION")
@@ -861,7 +861,7 @@ class DeviceInfoCard(GlassCard):
         self.setObjectName("deviceInfoCard")
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 8, 14, 8)
+        layout.setContentsMargins(32, 24, 32, 24)
         layout.setSpacing(6)
         
         self.lbl_title = QLabel("DEVICE INFORMATION")
@@ -1119,40 +1119,21 @@ class DeviceInfoCard(GlassCard):
         self.lbl_device_name.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 13px; font-weight: 800;")
         self.lbl_device_type.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 500;")
         
-        bg = theme_manager.get_color('glass_bg')
-        border = theme_manager.get_color('glass_border')
         self.setStyleSheet(f"""
             QFrame#deviceInfoCard {{
-                background-color: {bg};
-                border: 1px solid {border};
-                border-radius: 20px;
+                background-color: transparent;
+                border: none;
             }}
         """)
         for lbl, val in self.field_labels:
             lbl.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 600;")
             val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold;")
-            
-    def enterEvent(self, event):
-        accent = theme_manager.get_color('accent')
-        bg = theme_manager.get_color('glass_bg')
-        self.setStyleSheet(f"""
-            QFrame#deviceInfoCard {{
-                background-color: {bg};
-                border: 1px solid {accent};
-                border-radius: 20px;
-            }}
-        """)
-        super().enterEvent(event)
-        
-    def leaveEvent(self, event):
-        self.update_theme_styles()
-        super().leaveEvent(event)
 
 class StorageInformationCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(32, 32, 32, 32)
         layout.setSpacing(10)
         
         self.lbl_title = QLabel("STORAGE INFORMATION")
@@ -1205,6 +1186,14 @@ class StorageInformationCard(GlassCard):
         self.reset()
         theme_manager.theme_changed.connect(self.update_theme_styles)
         
+    def enterEvent(self, event):
+        # Override to remove hover animation
+        pass
+
+    def leaveEvent(self, event):
+        # Override to remove hover animation
+        pass
+        
     def reset(self):
         self.placeholder_widget.show()
         self.stats_widget.hide()
@@ -1244,13 +1233,13 @@ class StorageInformationCard(GlassCard):
         except Exception:
             percent = 0
             
-        self.anim = QVariantAnimation(self)
-        self.anim.setDuration(800)
-        self.anim.setStartValue(0)
-        self.anim.setEndValue(percent)
-        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.anim.valueChanged.connect(self._on_anim_val)
-        self.anim.start()
+        self.progress_anim = QVariantAnimation(self)
+        self.progress_anim.setDuration(800)
+        self.progress_anim.setStartValue(0)
+        self.progress_anim.setEndValue(percent)
+        self.progress_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.progress_anim.valueChanged.connect(self._on_anim_val)
+        self.progress_anim.start()
         
     def _on_anim_val(self, val):
         self.progress_bar.setValue(val)
@@ -1268,7 +1257,7 @@ class SystemHealthCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(32, 32, 32, 32)
         layout.setSpacing(8)
         
         self.lbl_title = QLabel("SYSTEM SHIELD INTEGRITY")
@@ -1397,7 +1386,7 @@ class NotificationCenter(GlassCard):
         self.setObjectName("notificationCenter")
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setContentsMargins(32, 24, 32, 24)
         layout.setSpacing(6)
         
         # Compatibility console layout (not added to main layout)
@@ -1629,7 +1618,7 @@ class SecurityRecommendationCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(32, 32, 32, 32)
         layout.setSpacing(8)
         
         self.lbl_title = QLabel("SECURITY RECOMMENDATION")
@@ -1671,7 +1660,7 @@ class LastScanSummaryCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(32, 32, 32, 32)
         layout.setSpacing(10)
         
         self.lbl_title = QLabel("LAST SCAN SUMMARY")
@@ -1800,7 +1789,7 @@ class TrustedDevicesCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(32, 32, 32, 32)
         layout.setSpacing(8)
         
         self.lbl_title = QLabel("TRUSTED DEVICES")
@@ -1987,7 +1976,7 @@ class ScanHistoryOverviewCard(GlassCard):
         self.setObjectName("scanHistoryOverviewCard")
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setContentsMargins(32, 28, 32, 28)
         layout.setSpacing(8)
         
         self.lbl_title = QLabel("SCAN HISTORY OVERVIEW")
@@ -2027,31 +2016,18 @@ class ScanHistoryOverviewCard(GlassCard):
         for row in self.stat_rows:
             row.update_theme_styles()
             
-        bg = theme_manager.get_color('glass_bg')
-        border = theme_manager.get_color('glass_border')
         self.setStyleSheet(f"""
             QFrame#scanHistoryOverviewCard {{
-                background-color: {bg};
-                border: 1px solid {border};
-                border-radius: 20px;
+                background-color: transparent;
+                border: none;
             }}
         """)
         
     def enterEvent(self, event):
-        accent = theme_manager.get_color('accent')
-        bg = theme_manager.get_color('glass_bg')
-        self.setStyleSheet(f"""
-            QFrame#scanHistoryOverviewCard {{
-                background-color: {bg};
-                border: 1px solid {accent};
-                border-radius: 20px;
-            }}
-        """)
         self.sparkline.reset_animation()
         super().enterEvent(event)
         
     def leaveEvent(self, event):
-        self.update_theme_styles()
         super().leaveEvent(event)
 
 class PremiumDateTimeWidget(QFrame):
@@ -2174,7 +2150,7 @@ class DashboardPage(QWidget):
         
         # Header block
         header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(0, 0, 0, 10)
+        header_layout.setContentsMargins(12, 0, 12, 10)
         
         left_header = QVBoxLayout()
         left_header.setSpacing(4)
@@ -2246,7 +2222,7 @@ class DashboardPage(QWidget):
         # Left Panel (Interactive USB Sandbox)
         self.left_card = GlassCard()
         left_layout = QVBoxLayout(self.left_card)
-        left_layout.setContentsMargins(16, 16, 16, 16)
+        left_layout.setContentsMargins(32, 32, 32, 32)
         
         lbl_usb_title = QLabel("DEVICE EMULATION TERMINAL")
         lbl_usb_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
@@ -2284,7 +2260,7 @@ class DashboardPage(QWidget):
         # Right Panel (Real-Time Metrics)
         self.right_card = GlassCard()
         right_layout = QVBoxLayout(self.right_card)
-        right_layout.setContentsMargins(16, 16, 16, 16)
+        right_layout.setContentsMargins(32, 32, 32, 32)
         right_layout.setSpacing(12)
         
         # Risk Ring View

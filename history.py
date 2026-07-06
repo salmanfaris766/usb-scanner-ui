@@ -65,18 +65,23 @@ class HistoryPage(QWidget):
         layout.setSpacing(16)
         
         # Header
+        header_layout = QVBoxLayout()
+        header_layout.setContentsMargins(12, 0, 12, 0)
+        header_layout.setSpacing(4)
+        
         lbl_welcome = QLabel("ENDPOINT ACTIVITY LOGS")
         lbl_welcome.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px; font-weight: 800; font-family: 'Inter'; letter-spacing: 1.5px;")
         self.lbl_status = QLabel("System Incident History")
         self.lbl_status.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 24px; font-weight: 800; font-family: 'Inter';")
         
-        layout.addWidget(lbl_welcome)
-        layout.addWidget(self.lbl_status)
+        header_layout.addWidget(lbl_welcome)
+        header_layout.addWidget(self.lbl_status)
+        layout.addLayout(header_layout)
         
         # Log Panel
         self.card = GlassCard()
         card_layout = QVBoxLayout(self.card)
-        card_layout.setContentsMargins(16, 16, 16, 16)
+        card_layout.setContentsMargins(32, 32, 32, 32)
         card_layout.setSpacing(10)
         
         self.scroll_area = QScrollArea()

@@ -26,18 +26,23 @@ class ScanPage(QWidget):
         layout.setSpacing(16)
         
         # Header
+        header_layout = QVBoxLayout()
+        header_layout.setContentsMargins(12, 0, 12, 0)
+        header_layout.setSpacing(4)
+        
         lbl_welcome = QLabel("CYBER RECONNAISSANCE SCANNER")
         lbl_welcome.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px; font-weight: 800; font-family: 'Inter'; letter-spacing: 1.5px;")
         self.lbl_status = QLabel("Deep Physical Scanning Engine")
         self.lbl_status.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 24px; font-weight: 800; font-family: 'Inter';")
         
-        layout.addWidget(lbl_welcome)
-        layout.addWidget(self.lbl_status)
+        header_layout.addWidget(lbl_welcome)
+        header_layout.addWidget(self.lbl_status)
+        layout.addLayout(header_layout)
         
         # Body layout
         self.card = GlassCard()
         card_layout = QVBoxLayout(self.card)
-        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setContentsMargins(32, 32, 32, 32)
         card_layout.setSpacing(14)
         
         self.lbl_scan_info = QLabel("Initiate deep scan to audit all low-level communication registers on USB endpoints.")
@@ -65,20 +70,6 @@ class ScanPage(QWidget):
         card_layout.addWidget(self.log_box, 1)
         
         self.btn_scan = QPushButton("LAUNCH SYSTEM AUDIT")
-        self.btn_scan.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {theme_manager.get_color('accent')};
-                color: #000000;
-                border-radius: 12px;
-                padding: 12px;
-                font-family: 'Inter';
-                font-weight: 700;
-                font-size: 12px;
-            }}
-            QPushButton:hover {{
-                opacity: 0.95;
-            }}
-        """)
         self.btn_scan.clicked.connect(self.start_scan)
         card_layout.addWidget(self.btn_scan)
         
@@ -91,21 +82,31 @@ class ScanPage(QWidget):
         self.log_idx = 0
         
         theme_manager.theme_changed.connect(self.update_styles)
+        self.update_styles()
 
     def update_styles(self):
         self.lbl_status.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 24px; font-weight: 800; font-family: 'Inter';")
+        accent = theme_manager.get_color('accent')
         self.btn_scan.setStyleSheet(f"""
             QPushButton {{
-                background-color: {theme_manager.get_color('accent')};
-                color: #000000;
-                border-radius: 12px;
-                padding: 12px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}aa, stop:1 {accent}77);
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 30);
+                border-radius: 22px;
+                padding: 12px 24px;
                 font-family: 'Inter';
                 font-weight: 700;
                 font-size: 12px;
+                letter-spacing: 1px;
             }}
             QPushButton:hover {{
-                opacity: 0.95;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}, stop:1 {accent}cc);
+                border: 1px solid {accent};
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}cc, stop:1 {accent}99);
+                padding-top: 13px;
+                padding-bottom: 11px;
             }}
         """)
         self.log_box.setStyleSheet(f"""

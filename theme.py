@@ -1,25 +1,25 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 
 COLORS_DARK = {
-    'bg': '#07080d',
-    'glass_bg': 'rgba(20, 24, 38, 180)',
-    'glass_border': 'rgba(0, 229, 255, 40)',
+    'bg': '#050505',
+    'glass_bg': 'rgba(13, 13, 13, 160)',
+    'glass_border': 'rgba(255, 255, 255, 20)',
     'accent': '#00e5ff',
     'text_primary': '#ffffff',
-    'text_secondary': '#8f9cae',
+    'text_secondary': '#a1a1aa',
     'btn_bg': 'rgba(255, 255, 255, 12)',
-    'btn_hover': 'rgba(0, 229, 255, 50)',
+    'btn_hover': 'rgba(0, 229, 255, 45)',
 }
 
 COLORS_LIGHT = {
-    'bg': '#f0f4f8',
-    'glass_bg': 'rgba(255, 255, 255, 200)',
-    'glass_border': 'rgba(0, 180, 216, 50)',
-    'accent': '#00b4d8',
-    'text_primary': '#0f172a',
-    'text_secondary': '#475569',
-    'btn_bg': 'rgba(15, 23, 42, 10)',
-    'btn_hover': 'rgba(0, 180, 216, 40)',
+    'bg': '#f5f5f7',
+    'glass_bg': 'rgba(255, 255, 255, 180)',
+    'glass_border': 'rgba(0, 0, 0, 15)',
+    'accent': '#00e5ff',
+    'text_primary': '#1d1d1f',
+    'text_secondary': '#86868b',
+    'btn_bg': 'rgba(0, 0, 0, 8)',
+    'btn_hover': 'rgba(0, 229, 255, 30)',
 }
 
 class ThemeManager(QObject):

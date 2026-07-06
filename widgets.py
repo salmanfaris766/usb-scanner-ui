@@ -1,6 +1,6 @@
 import math
 from PyQt6.QtWidgets import QFrame, QWidget, QHBoxLayout, QLabel, QGraphicsDropShadowEffect
-from PyQt6.QtCore import Qt, QTimer, QRectF, QPointF
+from PyQt6.QtCore import Qt, QTimer, QRectF, QPointF, QVariantAnimation, QEasingCurve
 from PyQt6.QtGui import QPainter, QPen, QBrush, QFont, QLinearGradient, QPainterPath, QColor
 from theme import theme_manager
 
@@ -83,54 +83,151 @@ class GlassCard(QFrame):
         super().__init__(parent)
         self.setObjectName("glassCard")
         self.setFrameShape(QFrame.Shape.NoFrame)
+        
+        # Hover animation properties
+        self._hover_progress = 0.0
+        self.anim = QVariantAnimation(self)
+        self.anim.setDuration(250)
+        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.anim.valueChanged.connect(self._handle_anim)
+        
         self.update_style()
         theme_manager.theme_changed.connect(self.update_style)
 
+    def _handle_anim(self, value):
+        self._hover_progress = value
+        self.update()
+
+    def enterEvent(self, event):
+        self.anim.setDirection(QVariantAnimation.Direction.Forward)
+        if self.anim.state() != QVariantAnimation.State.Running:
+            self.anim.start()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.anim.setDirection(QVariantAnimation.Direction.Backward)
+        if self.anim.state() != QVariantAnimation.State.Running:
+            self.anim.start()
+        super().leaveEvent(event)
+
     def update_style(self):
-        bg = theme_manager.get_color('glass_bg')
-        border = theme_manager.get_color('glass_border')
-        self.setStyleSheet(f"""
-            QFrame#glassCard {{
-                background-color: {bg};
-                border: 1px solid {border};
-                border-radius: 20px;
-            }}
-            QLabel, QPushButton, QWidget {{
+        self.setStyleSheet("""
+            QLabel, QPushButton, QWidget {
                 border: none;
                 background-color: transparent;
-            }}
+            }
         """)
-
-class GlassProgressBar(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.value = 0
-        self.setFixedHeight(10)
-
-    def setValue(self, val):
-        self.value = val
-        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        painter.setBrush(QBrush(QColor_val := QColor(255, 255, 255, 15) if theme_manager.current_theme == "dark" else QColor(15, 23, 42, 15)))
+        # Base rectangle with drawing margin (12px) to prevent clipping when lifted/scaled/shadowed
+        margin = 12.0
+        base_rect = QRectF(self.rect())
+        
+        # Compute dynamic lifted and scaled rect
+        lift = 5.0 * self._hover_progress
+        scale = 1.02 * self._hover_progress
+        
+        card_rect = base_rect.adjusted(
+            margin - scale,
+            margin - lift - scale,
+            -margin + scale,
+            -margin - lift + scale
+        )
+        
+        # Draw soft shadow manually
+        # This replaces QGraphicsDropShadowEffect to avoid painter conflicts and boost performance on low-power devices
+        shadow_opacity = int(45 + 30 * self._hover_progress)
+        for offset in range(1, 7):
+            shadow_rect = card_rect.adjusted(-offset * 1.5, -offset * 0.5 + 2.0, offset * 1.5, offset * 1.5 + 3.0)
+            opacity = int((shadow_opacity / 6) * (7 - offset))
+            painter.setBrush(QBrush(QColor(0, 0, 0, opacity)))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRoundedRect(shadow_rect, 24.0 + offset, 24.0 + offset)
+        
+        # Draw background glass (slightly brighter on hover)
+        bg_color_str = theme_manager.get_color('glass_bg')
+        bg_color = QColor(bg_color_str) if bg_color_str.startswith('rgba') or bg_color_str.startswith('#') else QColor(13, 13, 13, 160)
+        
+        if self._hover_progress > 0:
+            if theme_manager.current_theme == "dark":
+                bg_color.setRed(min(255, bg_color.red() + int(12 * self._hover_progress)))
+                bg_color.setGreen(min(255, bg_color.green() + int(12 * self._hover_progress)))
+                bg_color.setBlue(min(255, bg_color.blue() + int(12 * self._hover_progress)))
+                bg_color.setAlpha(min(255, bg_color.alpha() + int(15 * self._hover_progress)))
+            else:
+                bg_color.setAlpha(min(255, bg_color.alpha() + int(20 * self._hover_progress)))
+                
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(card_rect, 24.0, 24.0)
+        
+        # Draw elegant Apple-style light reflection / linear gradient border
+        border_grad = QLinearGradient(card_rect.topLeft(), card_rect.bottomRight())
+        
+        if theme_manager.current_theme == "dark":
+            accent = QColor(theme_manager.get_color('accent'))
+            c0 = QColor(255, 255, 255, int(45 + 30 * self._hover_progress))
+            c1 = QColor(accent.red(), accent.green(), accent.blue(), int(25 * self._hover_progress))
+            c2 = QColor(255, 255, 255, int(5 + 5 * self._hover_progress))
+            
+            border_grad.setColorAt(0.0, c0)
+            border_grad.setColorAt(0.3, c1)
+            border_grad.setColorAt(1.0, c2)
+        else:
+            c0 = QColor(0, 0, 0, int(35 + 25 * self._hover_progress))
+            c1 = QColor(0, 0, 0, int(10 + 10 * self._hover_progress))
+            border_grad.setColorAt(0.0, c0)
+            border_grad.setColorAt(1.0, c1)
+            
+        pen = QPen(border_grad, 1.0)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(card_rect, 24.0, 24.0)
+
+class GlassProgressBar(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("glassProgressBar")
+        self.value = 0
+        self.setFixedHeight(8)
+        # Prevent stylesheets from overriding custom painting
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
+
+    def setValue(self, val):
+        self.value = val
+        self.update()
+        # Ensure parent chain is repainted for semi-transparent widgets
+        p = self.parent()
+        while p:
+            p.update()
+            p = p.parent()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Draw background track
+        bg_color = QColor(255, 255, 255, 35) if theme_manager.current_theme == "dark" else QColor(15, 23, 42, 25)
+        painter.setBrush(QBrush(bg_color))
         painter.setPen(Qt.PenStyle.NoPen)
         rect = QRectF(self.rect())
-        painter.drawRoundedRect(rect, 5, 5)
+        painter.drawRoundedRect(rect, 4.0, 4.0)
         
         if self.value > 0:
-            fill_width = rect.width() * (self.value / 100.0)
-            fill_rect = QRectF(0, 0, fill_width, rect.height())
-            accent = QColor(theme_manager.get_color("accent"))
-            
-            gradient = QLinearGradient(0, 0, rect.width(), 0)
-            gradient.setColorAt(0, accent)
-            gradient.setColorAt(1, QColor(0, 160, 255, 180))
-            
-            painter.setBrush(QBrush(gradient))
-            painter.drawRoundedRect(fill_rect, 5, 5)
+            fill_width = rect.width() * (min(100.0, max(0.0, self.value)) / 100.0)
+            if fill_width > 0:
+                fill_rect = QRectF(0, 0, fill_width, rect.height())
+                accent = QColor(theme_manager.get_color("accent"))
+                
+                gradient = QLinearGradient(0, 0, rect.width(), 0)
+                gradient.setColorAt(0, accent)
+                gradient.setColorAt(1, QColor(0, 229, 255, 200) if theme_manager.current_theme == "dark" else QColor(0, 180, 216, 200))
+                
+                painter.setBrush(QBrush(gradient))
+                painter.drawRoundedRect(fill_rect, 4.0, 4.0)
 
 class StatusBadge(QWidget):
     def __init__(self, text, color, parent=None):

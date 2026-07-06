@@ -56,30 +56,43 @@ class ToggleRow(QFrame):
         self.lbl_desc.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px; background: transparent; border: none;")
         
         accent = theme_manager.get_color("accent")
-        text_color = "black" if theme_manager.current_theme == "dark" else "white"
         
         if self.btn_toggle.isChecked():
             self.btn_toggle.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {accent};
-                    color: {text_color};
-                    border-radius: 8px;
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}aa, stop:1 {accent}77);
+                    color: #ffffff;
+                    border-radius: 16px;
                     font-family: 'Inter';
                     font-weight: 800;
-                    font-size: 11px;
-                    border: none;
+                    font-size: 10px;
+                    border: 1px solid rgba(255, 255, 255, 25);
+                }}
+                QPushButton:hover {{
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}, stop:1 {accent}cc);
+                    border: 1px solid {accent};
+                }}
+                QPushButton:pressed {{
+                    background: {accent}cc;
                 }}
             """)
         else:
             self.btn_toggle.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: rgba(120, 120, 120, 20);
+                    background: rgba(255, 255, 255, 10);
                     color: {theme_manager.get_color('text_secondary')};
-                    border-radius: 8px;
+                    border-radius: 16px;
                     font-family: 'Inter';
                     font-weight: 800;
-                    font-size: 11px;
-                    border: 0.5px solid {theme_manager.get_color('glass_border')};
+                    font-size: 10px;
+                    border: 1px solid {theme_manager.get_color('glass_border')};
+                }}
+                QPushButton:hover {{
+                    background: rgba(255, 255, 255, 20);
+                    border: 1px solid rgba(255, 255, 255, 40);
+                }}
+                QPushButton:pressed {{
+                    background: rgba(255, 255, 255, 5);
                 }}
             """)
 
@@ -91,18 +104,23 @@ class SettingsPage(QWidget):
         layout.setSpacing(16)
         
         # Header
+        header_layout = QVBoxLayout()
+        header_layout.setContentsMargins(12, 0, 12, 0)
+        header_layout.setSpacing(4)
+        
         lbl_welcome = QLabel("SYSTEM SYSTEM PREFERENCES")
         lbl_welcome.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px; font-weight: 800; font-family: 'Inter'; letter-spacing: 1.5px;")
         self.lbl_status = QLabel("Security settings")
         self.lbl_status.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 24px; font-weight: 800; font-family: 'Inter';")
         
-        layout.addWidget(lbl_welcome)
-        layout.addWidget(self.lbl_status)
+        header_layout.addWidget(lbl_welcome)
+        header_layout.addWidget(self.lbl_status)
+        layout.addLayout(header_layout)
         
         # Settings list
         self.card = GlassCard()
         card_layout = QVBoxLayout(self.card)
-        card_layout.setContentsMargins(16, 16, 16, 16)
+        card_layout.setContentsMargins(32, 32, 32, 32)
         card_layout.setSpacing(12)
         
         # Theme Setting
@@ -170,32 +188,35 @@ class SettingsPage(QWidget):
         self.lbl_status.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 24px; font-weight: 800; font-family: 'Inter';")
         
         accent = theme_manager.get_color("accent")
-        text_color = "black" if theme_manager.current_theme == "dark" else "white"
         
         for btn, name in [(self.btn_dark, "dark"), (self.btn_light, "light")]:
             if theme_manager.current_theme == name:
                 btn.setStyleSheet(f"""
                     QPushButton {{
-                        background-color: {accent};
-                        color: {text_color};
-                        border-radius: 8px;
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}aa, stop:1 {accent}77);
+                        color: #ffffff;
+                        border-radius: 14px;
                         font-family: 'Inter';
                         font-weight: 800;
-                        font-size: 11px;
+                        font-size: 10px;
                         padding: 6px 14px;
-                        border: none;
+                        border: 1px solid rgba(255, 255, 255, 25);
                     }}
                 """)
             else:
                 btn.setStyleSheet(f"""
                     QPushButton {{
-                        background-color: rgba(120, 120, 120, 20);
+                        background: rgba(255, 255, 255, 10);
                         color: {theme_manager.get_color('text_secondary')};
-                        border-radius: 8px;
+                        border-radius: 14px;
                         font-family: 'Inter';
                         font-weight: 800;
-                        font-size: 11px;
+                        font-size: 10px;
                         padding: 6px 14px;
-                        border: 0.5px solid {theme_manager.get_color('glass_border')};
+                        border: 1px solid {theme_manager.get_color('glass_border')};
+                    }}
+                    QPushButton:hover {{
+                        background: rgba(255, 255, 255, 20);
+                        border: 1px solid rgba(255, 255, 255, 30);
                     }}
                 """)
