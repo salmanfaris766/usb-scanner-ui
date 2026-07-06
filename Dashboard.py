@@ -1,7 +1,7 @@
 import math
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QStackedLayout, QScrollArea, QFrame, QGraphicsOpacityEffect, QComboBox, QGridLayout
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QRectF, QVariantAnimation, QEasingCurve, QTime, QPointF, QDateTime, QPropertyAnimation
-from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush
+from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath
 from theme import theme_manager
 from widgets import GlassCard, AnimatedUSBWidget, CircularRiskRing, StatusBadge, draw_category_vector_icon, GlassProgressBar
 
@@ -648,124 +648,440 @@ class DeviceClassificationCard(GlassCard):
         self.lbl_type.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 13px; font-weight: bold;")
         self.lbl_desc.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
 
+class LargeDeviceIconWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.category = "Unknown Device"
+        self.setFixedSize(40, 40)
+        
+    def set_category(self, category):
+        self.category = category
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        draw_category_vector_icon(painter, self.category, 0, 0, 40)
+
+class TrustProgressBar(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.progress = 0  # 0 to 100
+        self.color_hex = "#00e676"
+        self.setMinimumHeight(6)
+        self.setMaximumHeight(6)
+        self.setFixedWidth(130)
+        
+        # Continuous glow animation timer for the moving shine/pulse effect
+        self.glow_timer = QTimer(self)
+        self.glow_timer.timeout.connect(self.update_glow)
+        self.glow_timer.start(25) # ~40 FPS for super smooth movement
+        self.glow_offset = 0.0
+        
+    def set_progress(self, progress, color_hex):
+        self.progress = progress
+        self.color_hex = color_hex
+        self.update()
+        
+    def update_glow(self):
+        # Move the glow offset continuously
+        self.glow_offset += 0.02
+        if self.glow_offset > 1.2:
+            self.glow_offset = -0.2
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Track Background (glassmorphic look)
+        rect = QRectF(0, 1, self.width(), 4)
+        bg_color = QColor(255, 255, 255, 18) if theme_manager.current_theme == "dark" else QColor(0, 0, 0, 12)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(bg_color))
+        painter.drawRoundedRect(rect, 2, 2)
+        
+        # Filled Progress segment
+        fill_width = self.width() * (self.progress / 100.0)
+        if fill_width > 0:
+            fill_rect = QRectF(0, 1, fill_width, 4)
+            gradient = QLinearGradient(0, 0, fill_width, 0)
+            
+            # Premium Cyber Gradients
+            if self.color_hex == "#00e676":  # Trusted -> Cyan to Green gradient
+                gradient.setColorAt(0, QColor("#00e5ff")) # Cyber Cyan
+                gradient.setColorAt(1, QColor("#00e676")) # Vibrant Green
+            elif self.color_hex == "#ff1744":  # Blocked -> Red to Neon Pink gradient
+                gradient.setColorAt(0, QColor("#ff1744")) # Cyber Red
+                gradient.setColorAt(1, QColor("#ff4081")) # Hot Pink
+            elif self.color_hex == "#ffb300":  # Unknown -> Orange to Amber gradient
+                gradient.setColorAt(0, QColor("#ff6d00")) # Deep Orange
+                gradient.setColorAt(1, QColor("#ffb300")) # Cyber Amber
+            else:
+                c = QColor(self.color_hex)
+                gradient.setColorAt(0, c)
+                gradient.setColorAt(1, c.lighter(125))
+                
+            painter.setBrush(QBrush(gradient))
+            painter.drawRoundedRect(fill_rect, 2, 2)
+            
+            # Highlight/Glow/Shine animation overlay
+            glow_width = 35.0
+            glow_start = fill_width * self.glow_offset - (glow_width / 2.0)
+            highlight_gradient = QLinearGradient(glow_start, 0, glow_start + glow_width, 0)
+            highlight_gradient.setColorAt(0, QColor(255, 255, 255, 0))
+            highlight_gradient.setColorAt(0.5, QColor(255, 255, 255, 180)) # Crisp white core
+            highlight_gradient.setColorAt(1, QColor(255, 255, 255, 0))
+            
+            painter.setBrush(QBrush(highlight_gradient))
+            painter.setClipRect(fill_rect)
+            painter.drawRoundedRect(QRectF(glow_start, 1, glow_width, 4), 2, 2)
+
+class LiquidGlassBadge(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("liquidGlassBadge")
+        self.status = "None"
+        self.target_score = 0
+        self.current_score = 0
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        
+        self.lbl_score_row = QLabel()
+        self.lbl_score_row.setAlignment(Qt.AlignmentFlag.AlignRight)
+        
+        # New sleek progress bar widget
+        self.progress_bar_widget = TrustProgressBar()
+        
+        self.lbl_status_row = QLabel()
+        self.lbl_status_row.setAlignment(Qt.AlignmentFlag.AlignRight)
+        
+        # Backward compatibility attributes
+        self.lbl_bar_row = QLabel()
+        self.lbl_bar_row.hide()
+        
+        self.lbl_text = QLabel()
+        self.lbl_text.hide()
+        
+        layout.addWidget(self.lbl_score_row)
+        layout.addWidget(self.progress_bar_widget, 0, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.lbl_status_row)
+        
+        self.anim_timer = QTimer(self)
+        self.anim_timer.timeout.connect(self.on_anim_tick)
+        
+        self.set_status("None")
+        
+    def set_status(self, status):
+        self.status = status
+        if status == "Trusted":
+            self.target_score = 96
+        elif status == "Blocked":
+            self.target_score = 15
+        elif status == "Unknown":
+            self.target_score = 65
+        else:
+            self.target_score = 0
+            
+        self.current_score = 0
+        self.anim_timer.start(25)
+        self.update_ui()
+        
+    def on_anim_tick(self):
+        if self.current_score < self.target_score:
+            self.current_score += 2
+            if self.current_score >= self.target_score:
+                self.current_score = self.target_score
+                self.anim_timer.stop()
+            self.update_ui()
+        elif self.current_score > self.target_score:
+            self.current_score -= 2
+            if self.current_score <= self.target_score:
+                self.current_score = self.target_score
+                self.anim_timer.stop()
+            self.update_ui()
+        else:
+            self.anim_timer.stop()
+            
+    def update_ui(self):
+        score_val = f"{self.current_score}%"
+        
+        total_blocks = 10
+        filled_blocks = int(round(self.current_score * total_blocks / 100))
+        bar_str = "█" * filled_blocks + "░" * (total_blocks - filled_blocks)
+        
+        if self.status == "Trusted":
+            color = "#00e676"
+            status_lbl = "✓ Trusted"
+        elif self.status == "Blocked":
+            color = "#ff1744"
+            status_lbl = "✗ Suspicious"
+        elif self.status == "Unknown":
+            color = "#ffb300"
+            status_lbl = "⚠ Unknown"
+        else:
+            color = "#8898a6"
+            status_lbl = "░ Offline"
+            
+        self.lbl_score_row.setText(f"<span style='color: {theme_manager.get_color('text_secondary')}; font-family: Inter; font-size: 8px; font-weight: 800; letter-spacing: 0.5px;'>TRUST SCORE:</span> <span style='color: {color}; font-family: Inter; font-size: 11px; font-weight: 800;'>{score_val}</span>")
+        self.lbl_bar_row.setText(f"<span style='color: {color}; font-family: \"JetBrains Mono\", monospace; font-size: 11px; font-weight: bold;'>{bar_str}</span>")
+        self.lbl_status_row.setText(f"<span style='color: {color}; font-family: Inter; font-size: 9px; font-weight: 800;'>{status_lbl.upper()}</span>")
+        
+        # Update custom progress bar
+        self.progress_bar_widget.set_progress(self.current_score, color)
+        
+        self.lbl_text.setText(status_lbl)
+        self.update_style()
+        
+    def update_style(self):
+        self.setStyleSheet("""
+            #liquidGlassBadge {
+                background-color: transparent;
+                border: none;
+            }
+        """)
+
+class DummyFingerprintPanel:
+    def __init__(self, target_label):
+        self.lbl = target_label
+    def set_fingerprint(self, text):
+        self.lbl.setText(text)
+
+class DummyPortBlockWidget:
+    def __init__(self, port_label, speed_label):
+        self.lbl_value = port_label
+        self.lbl_sub = speed_label
+
 class DeviceInfoCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
+        self.setObjectName("deviceInfoCard")
         
-        header_layout = QHBoxLayout()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 8, 14, 8)
+        layout.setSpacing(6)
+        
         self.lbl_title = QLabel("DEVICE INFORMATION")
         self.lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
-        header_layout.addWidget(self.lbl_title)
+        layout.addWidget(self.lbl_title)
         
-        self.badge_widget = QFrame()
-        self.badge_widget.setObjectName("badgeWidget")
-        self.badge_layout = QHBoxLayout(self.badge_widget)
-        self.badge_layout.setContentsMargins(8, 4, 8, 4)
-        self.badge_lbl = QLabel("No Device")
-        self.badge_lbl.setStyleSheet("font-family: 'Inter'; font-size: 9px; font-weight: bold; text-transform: uppercase;")
-        self.badge_layout.addWidget(self.badge_lbl)
-        header_layout.addStretch()
-        header_layout.addWidget(self.badge_widget)
-        layout.addLayout(header_layout)
+        # ----------------------------------------------------
+        # SECTION 1: HEADER ROW
+        # ----------------------------------------------------
+        self.header_widget = QWidget()
+        header_layout = QHBoxLayout(self.header_widget)
+        header_layout.setContentsMargins(0, 4, 0, 4)
+        header_layout.setSpacing(14)
+        header_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         
-        self.grid_widget = QWidget()
-        self.grid_layout = QHBoxLayout(self.grid_widget)
-        self.grid_layout.setContentsMargins(0, 0, 0, 0)
-        self.grid_layout.setSpacing(12)
+        # Left Side Group (Cohesive group for Icon, Name, and Type)
+        left_group_layout = QHBoxLayout()
+        left_group_layout.setContentsMargins(0, 0, 0, 0)
+        left_group_layout.setSpacing(14)
+        left_group_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         
-        left_col = QVBoxLayout()
-        right_col = QVBoxLayout()
-        self.grid_layout.addLayout(left_col)
-        self.grid_layout.addLayout(right_col)
-        layout.addWidget(self.grid_widget)
+        self.icon_widget = LargeDeviceIconWidget()
+        left_group_layout.addWidget(self.icon_widget, 0, Qt.AlignmentFlag.AlignVCenter)
         
+        text_layout = QVBoxLayout()
+        text_layout.setSpacing(2)
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        
+        self.lbl_device_name = QLabel("No Device Connected")
+        self.lbl_device_name.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 13px; font-weight: 800;")
+        self.lbl_device_name.setWordWrap(True)
+        
+        self.lbl_device_type = QLabel("Waiting for connection...")
+        self.lbl_device_type.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 500;")
+        
+        text_layout.addWidget(self.lbl_device_name)
+        text_layout.addWidget(self.lbl_device_type)
+        left_group_layout.addLayout(text_layout)
+        
+        header_layout.addLayout(left_group_layout, 1)
+        
+        # Right Side (Redesigned Trust Score Indicator)
+        self.badge = LiquidGlassBadge()
+        header_layout.addWidget(self.badge, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        
+        self.badge_widget = self.badge
+        self.badge_lbl = self.badge.lbl_text
+        
+        layout.addWidget(self.header_widget)
+        
+        # Main content container (visible only when device is connected)
+        self.content_widget = QWidget()
+        content_layout = QVBoxLayout(self.content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+        
+        # ----------------------------------------------------
+        # SECTION 2: SPECIFICATIONS GRID (Left & Right columns)
+        # ----------------------------------------------------
+        self.spec_columns_widget = QWidget()
+        grid_layout_sec2 = QGridLayout(self.spec_columns_widget)
+        grid_layout_sec2.setContentsMargins(0, 2, 0, 2)
+        grid_layout_sec2.setHorizontalSpacing(16)
+        grid_layout_sec2.setVerticalSpacing(4)
+        
+        self.fields = {
+            "name": self.lbl_device_name
+        }
+        self.field_labels = []
+        
+        # Set column stretch for the 4-column grid (Left Label, Left Value, Right Label, Right Value)
+        grid_layout_sec2.setColumnStretch(0, 2)
+        grid_layout_sec2.setColumnStretch(1, 3)
+        grid_layout_sec2.setColumnStretch(2, 2)
+        grid_layout_sec2.setColumnStretch(3, 3)
+        
+        left_specs = [
+            ("Manufacturer", "manufacturer"),
+            ("Vendor ID", "vid"),
+            ("Product ID", "pid"),
+            ("Serial Number", "serial"),
+            ("USB Type", "usb_type"),
+            ("Capacity", "capacity"),
+            ("Used Space", "used_space"),
+            ("Free Space", "free_space"),
+        ]
+        
+        right_specs = [
+            ("File System", "file_system"),
+            ("Encryption", "encryption"),
+            ("Power", "power"),
+            ("USB Version", "usb_version"),
+            ("USB Port", "port"),
+            ("Connected Time", "conn_time"),
+            ("Active Time", "timer"),
+            ("Fingerprint", "fingerprint"),
+        ]
+        
+        for row_idx, (label, key) in enumerate(left_specs):
+            lbl = QLabel(label)
+            lbl.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 600;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            
+            val = QLabel("N/A")
+            val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold;")
+            val.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            
+            grid_layout_sec2.addWidget(lbl, row_idx, 0)
+            grid_layout_sec2.addWidget(val, row_idx, 1)
+            
+            self.fields[key] = val
+            self.field_labels.append((lbl, val))
+            
+        for row_idx, (label, key) in enumerate(right_specs):
+            lbl = QLabel(label)
+            lbl.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 600;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            
+            val = QLabel("N/A")
+            val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold;")
+            val.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            
+            grid_layout_sec2.addWidget(lbl, row_idx, 2)
+            grid_layout_sec2.addWidget(val, row_idx, 3)
+            
+            self.fields[key] = val
+            self.field_labels.append((lbl, val))
+            
+        # Hidden/dummy compatibility fields & panels
+        self.fields["speed"] = QLabel()
+        self.port_block_widget = DummyPortBlockWidget(self.fields["port"], self.fields["speed"])
+        self.fp_panel = DummyFingerprintPanel(self.fields["fingerprint"])
+        
+        content_layout.addWidget(self.spec_columns_widget)
+        layout.addWidget(self.content_widget)
+        
+        # Standard placeholder widget
         self.placeholder_widget = QWidget()
         placeholder_layout = QVBoxLayout(self.placeholder_widget)
-        placeholder_layout.setContentsMargins(0, 10, 0, 10)
+        placeholder_layout.setContentsMargins(0, 8, 0, 8)
         placeholder_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.lbl_placeholder_main = QLabel("No Device Connected")
-        self.lbl_placeholder_main.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 13px; font-weight: bold;")
+        self.lbl_placeholder_main.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 12px; font-weight: bold;")
         self.lbl_placeholder_sub = QLabel("Waiting for USB Device...")
-        self.lbl_placeholder_sub.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
+        self.lbl_placeholder_sub.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px;")
         
         placeholder_layout.addWidget(self.lbl_placeholder_main, 0, Qt.AlignmentFlag.AlignCenter)
         placeholder_layout.addWidget(self.lbl_placeholder_sub, 0, Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.placeholder_widget)
         
-        self.fields = {}
-        self.field_labels = []
+        # Compatibility/legacy alias variables
+        self.grid_widget = self.content_widget
+        self.grid_layout = grid_layout_sec2
         
-        field_names = [
-            ("Device Name", "name"),
-            ("Manufacturer", "manufacturer"),
-            ("Vendor ID", "vid"),
-            ("Product ID", "pid"),
-            ("Serial Number", "serial"),
-            ("USB Version", "usb_version"),
-            ("Connected Port", "port"),
-            
-            ("Connection Speed", "speed"),
-            ("Capacity", "capacity"),
-            ("Used Space", "used_space"),
-            ("Free Space", "free_space"),
-            ("File System", "file_system"),
-            ("Connection Time", "conn_time"),
-            ("Connected For", "timer"),
-        ]
-        
-        for i, (label, key) in enumerate(field_names):
-            target_col = left_col if i < 7 else right_col
-            
-            row = QHBoxLayout()
-            lbl = QLabel(f"{label}:")
-            lbl.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px; font-weight: 600;")
-            
-            val = QLabel("N/A")
-            val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 11px; font-weight: bold;")
-            val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            
-            row.addWidget(lbl)
-            row.addWidget(val)
-            target_col.addLayout(row)
-            self.fields[key] = val
-            self.field_labels.append((lbl, val))
-            
         self.reset()
         theme_manager.theme_changed.connect(self.update_theme_styles)
         
     def reset(self):
-        self.grid_widget.hide()
+        self.content_widget.hide()
+        self.header_widget.hide()
         self.placeholder_widget.show()
-        self.badge_widget.hide()
-        for val in self.fields.values():
-            val.setText("N/A")
+        self.badge.set_status("None")
+        self.badge.hide()
+        for key, val in self.fields.items():
+            if key == "name":
+                val.setText("No Device Connected")
+            else:
+                val.setText("N/A")
+        self.lbl_device_type.setText("Waiting for connection...")
+        self.icon_widget.set_category("Unknown Device")
+        self.fp_panel.set_fingerprint("N/A")
         
     def update_device(self, dev, conn_time, authorized=True):
         self.placeholder_widget.hide()
-        self.grid_widget.show()
+        self.header_widget.show()
+        self.content_widget.show()
         
         if not authorized:
-            self.badge_widget.setStyleSheet("background-color: rgba(255, 23, 68, 0.15); border: 1px solid rgba(255, 23, 68, 0.4); border-radius: 6px;")
-            self.badge_lbl.setText("Blocked Device")
-            self.badge_lbl.setStyleSheet("color: #ff1744; font-family: 'Inter'; font-size: 9px; font-weight: 900;")
-            self.badge_widget.show()
+            self.badge.set_status("Blocked")
+            self.badge.show()
         else:
-            self.badge_widget.setStyleSheet("background-color: rgba(0, 230, 118, 0.15); border: 1px solid rgba(0, 230, 118, 0.4); border-radius: 6px;")
-            self.badge_lbl.setText("Trusted Device")
-            self.badge_lbl.setStyleSheet("color: #00e676; font-family: 'Inter'; font-size: 9px; font-weight: 900;")
-            self.badge_widget.show()
+            if dev.get("name") in TRUSTED_DEVICES:
+                self.badge.set_status("Trusted")
+            else:
+                self.badge.set_status("Unknown")
+            self.badge.show()
             
         self.fields["name"].setText(dev.get("name", "Unknown"))
+        self.lbl_device_type.setText(dev.get("category", "USB Peripheral"))
+        self.icon_widget.set_category(dev.get("category", "Unknown Device"))
+        
         self.fields["manufacturer"].setText(dev.get("manufacturer", "Unknown"))
         self.fields["vid"].setText(dev.get("vid", "N/A"))
         self.fields["pid"].setText(dev.get("pid", "N/A"))
         self.fields["serial"].setText(dev.get("serial", "N/A"))
         
+        self.fields["usb_type"].setText(dev.get("classification", dev.get("category", "Mass Storage")))
+        
+        is_bad = dev.get("is_bad", False)
+        if "SanDisk" in dev.get("name", ""):
+            enc_val = "Encrypted (BitLocker)"
+        elif "Sony" in dev.get("name", ""):
+            enc_val = "Encrypted (FileVault)"
+        elif is_bad:
+            enc_val = "Suspicious (None)"
+        else:
+            enc_val = "No"
+        self.fields["encryption"].setText(enc_val)
+        
         usb_ver = dev.get("usb_version", "USB 2.0")
+        if "3." in usb_ver:
+            p_val = "900 mA"
+        elif "C" in usb_ver:
+            p_val = "900 mA"
+        else:
+            p_val = "500 mA"
+        self.fields["power"].setText(p_val)
+        
         self.fields["usb_version"].setText(usb_ver)
         
         speed_map = {
@@ -776,9 +1092,9 @@ class DeviceInfoCard(GlassCard):
             "USB-C": "10 Gbps"
         }
         speed_str = speed_map.get(usb_ver, "480 Mbps")
-        port_str = "USB-C Port 1" if "C" in usb_ver else "USB Port 1"
+        port_str = "USB-C Port 2" if "C" in usb_ver else "USB 3.0 Port 2"
         
-        self.fields["port"].setText(port_str)
+        self.fields["port"].setText(f"{port_str} ({speed_str})")
         self.fields["speed"].setText(speed_str)
         self.fields["capacity"].setText(dev.get("capacity", "N/A"))
         self.fields["used_space"].setText(dev.get("used_space", "N/A"))
@@ -786,14 +1102,51 @@ class DeviceInfoCard(GlassCard):
         self.fields["file_system"].setText(dev.get("file_system", "N/A"))
         self.fields["conn_time"].setText(conn_time)
         self.fields["timer"].setText("00:00:00")
-
+        
+        import hashlib
+        vid = dev.get("vid", "0000")
+        pid = dev.get("pid", "0000")
+        serial = dev.get("serial", "UNKNOWN")
+        raw_str = f"{vid}:{pid}:{serial}"
+        h = hashlib.sha256(raw_str.encode('utf-8')).hexdigest().upper()
+        formatted_fp = ":".join(h[i:i+2] for i in range(0, 16, 2))
+        self.fp_panel.set_fingerprint(formatted_fp)
+        
     def update_theme_styles(self):
         self.lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
-        self.lbl_placeholder_main.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 13px; font-weight: bold;")
-        self.lbl_placeholder_sub.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
+        self.lbl_placeholder_main.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 12px; font-weight: bold;")
+        self.lbl_placeholder_sub.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px;")
+        self.lbl_device_name.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 13px; font-weight: 800;")
+        self.lbl_device_type.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 500;")
+        
+        bg = theme_manager.get_color('glass_bg')
+        border = theme_manager.get_color('glass_border')
+        self.setStyleSheet(f"""
+            QFrame#deviceInfoCard {{
+                background-color: {bg};
+                border: 1px solid {border};
+                border-radius: 20px;
+            }}
+        """)
         for lbl, val in self.field_labels:
-            lbl.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px; font-weight: 600;")
-            val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 11px; font-weight: bold;")
+            lbl.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 600;")
+            val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold;")
+            
+    def enterEvent(self, event):
+        accent = theme_manager.get_color('accent')
+        bg = theme_manager.get_color('glass_bg')
+        self.setStyleSheet(f"""
+            QFrame#deviceInfoCard {{
+                background-color: {bg};
+                border: 1px solid {accent};
+                border-radius: 20px;
+            }}
+        """)
+        super().enterEvent(event)
+        
+    def leaveEvent(self, event):
+        self.update_theme_styles()
+        super().leaveEvent(event)
 
 class StorageInformationCard(GlassCard):
     def __init__(self, parent=None):
@@ -1041,24 +1394,173 @@ class LiveMonitoringPanel(QWidget):
 class NotificationCenter(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("notificationCenter")
+        
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(6)
         
-        self.lbl_title = QLabel("ALERTS && CONSOLE LOG")
-        self.lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
-        layout.addWidget(self.lbl_title)
-        
+        # Compatibility console layout (not added to main layout)
         self.console = QVBoxLayout()
-        self.console.setSpacing(4)
-        layout.addLayout(self.console)
+        
+        # --- SECTION: DEVICE ACTIVITY ---
+        self.activity_frame = QFrame()
+        self.activity_frame.setObjectName("activityFrame")
+        act_layout = QHBoxLayout(self.activity_frame)
+        act_layout.setContentsMargins(8, 6, 8, 6)
+        act_layout.setSpacing(8)
+        
+        self.lbl_act_indicator = QLabel("●")
+        self.lbl_act_indicator.setStyleSheet("color: #8898a6; font-size: 11px; background: transparent; border: none;")
+        
+        self.lbl_act_title = QLabel("Device Activity Status:")
+        self.lbl_act_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; background: transparent; border: none;")
+        
+        self.lbl_act_status = QLabel("Idle")
+        self.lbl_act_status.setStyleSheet("color: #8898a6; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+        
+        act_layout.addWidget(self.lbl_act_indicator)
+        act_layout.addWidget(self.lbl_act_title)
+        act_layout.addWidget(self.lbl_act_status, 1)
+        layout.addWidget(self.activity_frame)
+        
+        # --- SECTION: MINI ACTIVITY TIMELINE ---
+        self.timeline_frame = QFrame()
+        self.timeline_frame.setObjectName("timelineFrame")
+        time_layout = QVBoxLayout(self.timeline_frame)
+        time_layout.setContentsMargins(8, 6, 8, 6)
+        time_layout.setSpacing(4)
+        
+        self.lbl_time_title = QLabel("MINI ACTIVITY TIMELINE")
+        self.lbl_time_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; background: transparent; border: none;")
+        time_layout.addWidget(self.lbl_time_title)
+        
+        self.timeline_rows_layout = QVBoxLayout()
+        self.timeline_rows_layout.setSpacing(4)
+        time_layout.addLayout(self.timeline_rows_layout)
+        
+        layout.addWidget(self.timeline_frame)
+        
+        # Glow timer for active status
+        self.act_glow_timer = QTimer(self)
+        self.act_glow_timer.timeout.connect(self.animate_act_status)
+        self.act_glow_timer.start(50)
+        self.glow_phase = 0.0
         
         self.logs = []
-        self.add_log("Application Started")
-        self.add_log("Virus Database Updated")
-        self.add_log("USB Monitoring Enabled")
-        theme_manager.theme_changed.connect(self.update_log_styles)
+        self.timeline_events = [] # List of dicts: {"time": "hh:mm", "text": "Connected"}
         
+        self.add_timeline_event(QTime.currentTime().toString("hh:mm"), "Ready")
+        
+        theme_manager.theme_changed.connect(self.update_log_styles)
+        self.update_log_styles()
+        
+    def set_activity_status(self, status):
+        display_status = status
+        if status == "Completed...":
+            display_status = "Completed"
+            
+        self.lbl_act_status.setText(display_status)
+        
+        if display_status == "Idle":
+            color = "#8898a6"
+        elif display_status == "Reading Files...":
+            color = "#ffb300"
+        elif display_status == "Scanning...":
+            color = "#29b6f6"
+        elif display_status == "Analyzing...":
+            color = "#ab47bc"
+        elif display_status in ["Completed", "Completed..."]:
+            color = "#00e676"
+        else:
+            color = theme_manager.get_color("accent")
+            
+        self.lbl_act_status.setStyleSheet(f"color: {color}; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_act_indicator.setStyleSheet(f"color: {color}; font-size: 11px; background: transparent; border: none;")
+        
+        # Smooth opacity transition
+        effect = QGraphicsOpacityEffect(self.lbl_act_status)
+        self.lbl_act_status.setGraphicsEffect(effect)
+        anim = QPropertyAnimation(effect, b"opacity", self)
+        anim.setDuration(300)
+        anim.setStartValue(0.0)
+        anim.setEndValue(1.0)
+        anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.lbl_act_status._fade_anim = anim
+        anim.start()
+        
+    def animate_act_status(self):
+        status = self.lbl_act_status.text()
+        if status in ["Reading Files...", "Scanning...", "Analyzing..."]:
+            self.glow_phase = (self.glow_phase + 0.1) % (2 * math.pi)
+            opacity = 0.5 + 0.5 * math.sin(self.glow_phase)
+            
+            if status == "Reading Files...":
+                color_rgba = f"rgba(255, 179, 0, {opacity:.2f})"
+            elif status == "Scanning...":
+                color_rgba = f"rgba(41, 182, 246, {opacity:.2f})"
+            else:
+                color_rgba = f"rgba(171, 71, 188, {opacity:.2f})"
+                
+            self.lbl_act_status.setStyleSheet(f"color: {color_rgba}; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+            self.lbl_act_indicator.setStyleSheet(f"color: {color_rgba}; font-size: 11px; background: transparent; border: none;")
+            
+    def add_timeline_event(self, time_str, event_text):
+        self.timeline_events.append({"time": time_str, "text": event_text})
+        if len(self.timeline_events) > 3:
+            self.timeline_events.pop(0)
+        self.update_timeline_ui()
+        
+    def update_timeline_ui(self):
+        while self.timeline_rows_layout.count() > 0:
+            item = self.timeline_rows_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+                
+        for ev in self.timeline_events:
+            row = QWidget()
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 2, 0, 2)
+            row_layout.setSpacing(8)
+            
+            lbl_time = QLabel(ev["time"])
+            lbl_time.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'JetBrains Mono'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+            
+            lbl_dot = QLabel("•")
+            color_accent = theme_manager.get_color("accent")
+            if ev["text"] == "Connected":
+                dot_color = "#ffb300"
+            elif ev["text"] == "Authorized":
+                dot_color = "#00e676"
+            elif ev["text"] == "Ready":
+                dot_color = color_accent
+            elif ev["text"] == "Blocked":
+                dot_color = "#ff1744"
+            else:
+                dot_color = theme_manager.get_color("text_secondary")
+                
+            lbl_dot.setStyleSheet(f"color: {dot_color}; font-size: 14px; font-weight: bold; background: transparent; border: none;")
+            
+            lbl_text = QLabel(ev["text"])
+            lbl_text.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+            
+            row_layout.addWidget(lbl_time)
+            row_layout.addWidget(lbl_dot)
+            row_layout.addWidget(lbl_text, 1)
+            
+            self.timeline_rows_layout.addWidget(row)
+            
+            effect = QGraphicsOpacityEffect(row)
+            row.setGraphicsEffect(effect)
+            anim = QPropertyAnimation(effect, b"opacity", self)
+            anim.setDuration(400)
+            anim.setStartValue(0.0)
+            anim.setEndValue(1.0)
+            anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+            row._fade_anim = anim
+            anim.start()
+            
     def add_log(self, msg):
         time_str = QTime.currentTime().toString("hh:mm:ss")
         log_text = f"[{time_str}] {msg}"
@@ -1075,10 +1577,53 @@ class NotificationCenter(GlassCard):
             self.console.removeWidget(oldest)
             oldest.deleteLater()
             
+        time_hm = QTime.currentTime().toString("hh:mm")
+        event_name = None
+        
+        if "insertion detected" in msg:
+            event_name = "Connected"
+            self.set_activity_status("Reading Files...")
+            QTimer.singleShot(600, lambda: self.set_activity_status("Scanning..."))
+            QTimer.singleShot(1200, lambda: self.set_activity_status("Analyzing..."))
+        elif "Access granted" in msg:
+            event_name = "Authorized"
+        elif "Scan complete" in msg or "Scan completed" in msg:
+            event_name = "Ready"
+            self.set_activity_status("Completed...")
+        elif "ejected" in msg:
+            event_name = "Ejected"
+            self.set_activity_status("Idle")
+        elif "Blocked" in msg:
+            event_name = "Blocked"
+            self.set_activity_status("Idle")
+            
+        if event_name:
+            self.add_timeline_event(time_hm, event_name)
+            
     def update_log_styles(self):
-        self.lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
         for lbl in self.logs:
             lbl.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'JetBrains Mono'; font-size: 9px; background: transparent; border: none;")
+            
+        bg = "rgba(255, 255, 255, 0.03)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 0.03)"
+        border = "rgba(255, 255, 255, 0.08)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 0.08)"
+        
+        self.activity_frame.setStyleSheet(f"""
+            QFrame#activityFrame {{
+                background-color: {bg};
+                border: 0.5px solid {border};
+                border-radius: 8px;
+            }}
+        """)
+        
+        self.timeline_frame.setStyleSheet(f"""
+            QFrame#timelineFrame {{
+                background-color: {bg};
+                border: 0.5px solid {border};
+                border-radius: 8px;
+            }}
+        """)
+        self.lbl_act_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; background: transparent; border: none;")
+        self.lbl_time_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; background: transparent; border: none;")
 
 class SecurityRecommendationCard(GlassCard):
     def __init__(self, parent=None):
@@ -1281,6 +1826,322 @@ class TrustedDevicesCard(GlassCard):
         for lbl in self.device_labels:
             lbl.setStyleSheet(f"color: #00e676; font-family: 'Inter'; font-size: 11px; font-weight: bold;")
 
+class SparklineGraph(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.data = [18, 35, 24, 67, 42, 30, 15]
+        self.anim_progress = 0.0  # 0.0 to 1.0
+        self.setMinimumHeight(45)
+        self.setMaximumHeight(45)
+        
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.on_timer)
+        self.timer.start(25)  # ~40 FPS for super smooth draw
+        
+    def on_timer(self):
+        if self.anim_progress < 1.0:
+            self.anim_progress += 0.03
+            if self.anim_progress > 1.0:
+                self.anim_progress = 1.0
+                self.timer.stop()
+            self.update()
+            
+    def reset_animation(self):
+        self.anim_progress = 0.0
+        self.timer.start(25)
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        if not self.data:
+            return
+            
+        width = self.width()
+        height = self.height()
+        
+        # Calculate coordinates
+        points = []
+        x_step = width / (len(self.data) - 1) if len(self.data) > 1 else width
+        
+        max_val = 100
+        min_val = 0
+        val_range = max_val - min_val if max_val != min_val else 1
+        
+        for i, val in enumerate(self.data):
+            x = i * x_step
+            # leave margins for points
+            y = height - 6 - ((val - min_val) / val_range) * (height - 12)
+            points.append(QPointF(x, y))
+            
+        path = QPainterPath()
+        if points:
+            path.moveTo(points[0])
+            for i in range(1, len(points)):
+                p0 = points[i-1]
+                p1 = points[i]
+                dx = p1.x() - p0.x()
+                c1 = QPointF(p0.x() + dx/2, p0.y())
+                c2 = QPointF(p0.x() + dx/2, p1.y())
+                path.cubicTo(c1, c2, p1)
+                
+        painter.save()
+        clip_rect = QRectF(0, 0, width * self.anim_progress, height)
+        painter.setClipRect(clip_rect)
+        
+        # Draw soft gradient under the curve
+        gradient_path = QPainterPath(path)
+        gradient_path.lineTo(points[-1].x(), height)
+        gradient_path.lineTo(points[0].x(), height)
+        gradient_path.closeSubpath()
+        
+        grad = QLinearGradient(0, 0, 0, height)
+        accent_color = QColor(theme_manager.get_color('accent'))
+        grad.setColorAt(0, QColor(accent_color.red(), accent_color.green(), accent_color.blue(), 35))
+        grad.setColorAt(1, QColor(accent_color.red(), accent_color.green(), accent_color.blue(), 0))
+        painter.setBrush(QBrush(grad))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawPath(gradient_path)
+        
+        # Draw subtle glowing pen backing
+        pen_glow = QPen(QColor(accent_color.red(), accent_color.green(), accent_color.blue(), 75), 3.0)
+        painter.setPen(pen_glow)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(path)
+        
+        # Draw solid crisp core line
+        pen_core = QPen(accent_color, 1.5)
+        painter.setPen(pen_core)
+        painter.drawPath(path)
+        
+        # Draw glowing points
+        for pt in points:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor(accent_color.red(), accent_color.green(), accent_color.blue(), 90)))
+            painter.drawEllipse(pt, 3.5, 3.5)
+            
+            painter.setBrush(QBrush(QColor(255, 255, 255)))
+            painter.drawEllipse(pt, 1.5, 1.5)
+            
+        painter.restore()
+
+class CompactStatRow(QWidget):
+    def __init__(self, icon, label, value, parent=None):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        
+        self.lbl_icon_label = QLabel(f"{icon}  {label}")
+        self.lbl_icon_label.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 600; background: transparent; border: none;")
+        
+        self.lbl_value = QLabel(value)
+        self.lbl_value.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_value.setAlignment(Qt.AlignmentFlag.AlignRight)
+        
+        layout.addWidget(self.lbl_icon_label)
+        layout.addStretch()
+        layout.addWidget(self.lbl_value)
+        
+    def update_theme_styles(self):
+        self.lbl_icon_label.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 600; background: transparent; border: none;")
+        self.lbl_value.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+
+class CompactStatusChip(QFrame):
+    def __init__(self, text="● Recent Scan Clean", color="#00e676", parent=None):
+        super().__init__(parent)
+        self.setObjectName("compactStatusChip")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(4)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.lbl_text = QLabel(text)
+        self.lbl_text.setStyleSheet(f"color: {color}; font-family: 'Inter'; font-size: 9px; font-weight: 800; letter-spacing: 0.5px;")
+        layout.addWidget(self.lbl_text)
+        
+        self.color = color
+        self.update_style()
+        theme_manager.theme_changed.connect(self.update_style)
+        
+    def update_style(self):
+        bg = "rgba(0, 230, 118, 0.08)" if theme_manager.current_theme == "dark" else "rgba(0, 230, 118, 0.05)"
+        border = "rgba(0, 230, 118, 0.2)" if theme_manager.current_theme == "dark" else "rgba(0, 230, 118, 0.15)"
+        
+        self.setStyleSheet(f"""
+            #compactStatusChip {{
+                background-color: {bg};
+                border: 0.5px solid {border};
+                border-radius: 6px;
+            }}
+            QLabel {{
+                background: transparent;
+                border: none;
+            }}
+        """)
+
+class ScanHistoryOverviewCard(GlassCard):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("scanHistoryOverviewCard")
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(8)
+        
+        self.lbl_title = QLabel("SCAN HISTORY OVERVIEW")
+        self.lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
+        layout.addWidget(self.lbl_title)
+        
+        self.sparkline = SparklineGraph(self)
+        layout.addWidget(self.sparkline)
+        
+        self.stat_rows = []
+        
+        self.row_last_scan = CompactStatRow("⏱", "Last Scan", "Today 11:32 AM", self)
+        layout.addWidget(self.row_last_scan)
+        self.stat_rows.append(self.row_last_scan)
+        
+        self.row_recent_risk = CompactStatRow("☣", "Recent Risk", "24%", self)
+        layout.addWidget(self.row_recent_risk)
+        self.stat_rows.append(self.row_recent_risk)
+        
+        self.row_weekly_scans = CompactStatRow("📊", "Weekly Scans", "18", self)
+        layout.addWidget(self.row_weekly_scans)
+        self.stat_rows.append(self.row_weekly_scans)
+        
+        self.status_container = QHBoxLayout()
+        self.status_container.setContentsMargins(0, 2, 0, 0)
+        self.status_chip = CompactStatusChip("● Recent Scan Clean", "#00e676", self)
+        self.status_container.addWidget(self.status_chip)
+        self.status_container.addStretch()
+        layout.addLayout(self.status_container)
+        
+        theme_manager.theme_changed.connect(self.update_theme_styles)
+        self.update_theme_styles()
+        
+    def update_theme_styles(self):
+        self.lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
+        
+        for row in self.stat_rows:
+            row.update_theme_styles()
+            
+        bg = theme_manager.get_color('glass_bg')
+        border = theme_manager.get_color('glass_border')
+        self.setStyleSheet(f"""
+            QFrame#scanHistoryOverviewCard {{
+                background-color: {bg};
+                border: 1px solid {border};
+                border-radius: 20px;
+            }}
+        """)
+        
+    def enterEvent(self, event):
+        accent = theme_manager.get_color('accent')
+        bg = theme_manager.get_color('glass_bg')
+        self.setStyleSheet(f"""
+            QFrame#scanHistoryOverviewCard {{
+                background-color: {bg};
+                border: 1px solid {accent};
+                border-radius: 20px;
+            }}
+        """)
+        self.sparkline.reset_animation()
+        super().enterEvent(event)
+        
+    def leaveEvent(self, event):
+        self.update_theme_styles()
+        super().leaveEvent(event)
+
+class PremiumDateTimeWidget(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("premiumDateTimeWidget")
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 8, 14, 8)
+        layout.setSpacing(2)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.lbl_day = QLabel()
+        self.lbl_day.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.lbl_date = QLabel()
+        self.lbl_date.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.lbl_time = QLabel()
+        self.lbl_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addWidget(self.lbl_day)
+        layout.addWidget(self.lbl_date)
+        layout.addWidget(self.lbl_time)
+        
+        self.update_style()
+        theme_manager.theme_changed.connect(self.update_style)
+        
+    def setText(self, text_ignored):
+        current_dt = QDateTime.currentDateTime()
+        self.lbl_day.setText(current_dt.toString("dddd").upper())
+        self.lbl_date.setText(current_dt.toString("d MMMM yyyy"))
+        self.lbl_time.setText(current_dt.toString("hh:mm:ss AP"))
+        
+    def update_style(self):
+        accent = theme_manager.get_color('accent')
+        text_primary = theme_manager.get_color('text_primary')
+        text_secondary = theme_manager.get_color('text_secondary')
+        
+        self.lbl_day.setStyleSheet(f"""
+            QLabel {{
+                color: {text_secondary};
+                font-family: 'Inter';
+                font-size: 9px;
+                font-weight: 600;
+                letter-spacing: 1.2px;
+                background: transparent;
+                border: none;
+                padding: 0;
+                margin: 0;
+            }}
+        """)
+        
+        self.lbl_date.setStyleSheet(f"""
+            QLabel {{
+                color: {text_primary};
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: 400;
+                background: transparent;
+                border: none;
+                padding: 0;
+                margin: 0;
+            }}
+        """)
+        
+        self.lbl_time.setStyleSheet(f"""
+            QLabel {{
+                color: {accent};
+                font-family: 'JetBrains Mono';
+                font-size: 13px;
+                font-weight: bold;
+                background: transparent;
+                border: none;
+                padding: 0;
+                margin: 0;
+            }}
+        """)
+        
+        bg = "rgba(255, 255, 255, 0.04)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 0.03)"
+        border = "rgba(255, 255, 255, 0.08)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 0.06)"
+        
+        self.setStyleSheet(f"""
+            #premiumDateTimeWidget {{
+                background-color: {bg};
+                border: 0.5px solid {border};
+                border-radius: 8px;
+            }}
+        """)
+
 class DashboardPage(QWidget):
     device_authorized = pyqtSignal(dict)
     device_blocked = pyqtSignal(dict)
@@ -1339,8 +2200,7 @@ class DashboardPage(QWidget):
         right_header.setSpacing(12)
         right_header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         
-        self.lbl_datetime = QLabel()
-        self.lbl_datetime.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'JetBrains Mono'; font-size: 11px; font-weight: bold; background-color: rgba(255,255,255,8); padding: 6px 12px; border-radius: 6px; border: 0.5px solid rgba(255,255,255,15);")
+        self.lbl_datetime = PremiumDateTimeWidget(self)
         
         self.datetime_timer = QTimer(self)
         self.datetime_timer.timeout.connect(self.update_datetime_label)
@@ -1445,7 +2305,7 @@ class DashboardPage(QWidget):
         
         # Device Status Card (Metadata subcard enhanced)
         self.meta_subcard = QWidget()
-        self.meta_subcard.setStyleSheet("background: rgba(255,255,255,6); border-radius: 12px;")
+        self.meta_subcard.setObjectName("metaSubcard")
         meta_layout = QVBoxLayout(self.meta_subcard)
         meta_layout.setContentsMargins(12, 12, 12, 12)
         meta_layout.setSpacing(6)
@@ -1488,8 +2348,16 @@ class DashboardPage(QWidget):
         row2_layout = QHBoxLayout()
         row2_layout.setSpacing(16)
         
+        left_sub_col = QVBoxLayout()
+        left_sub_col.setSpacing(16)
+        
+        self.scan_history_overview_card = ScanHistoryOverviewCard()
+        left_sub_col.addWidget(self.scan_history_overview_card)
+        
         self.device_info_card = DeviceInfoCard()
-        row2_layout.addWidget(self.device_info_card, 5)
+        left_sub_col.addWidget(self.device_info_card)
+        
+        row2_layout.addLayout(left_sub_col, 5)
         
         right_sub_col = QVBoxLayout()
         right_sub_col.setSpacing(16)
@@ -1545,6 +2413,20 @@ class DashboardPage(QWidget):
         self.lbl_meta_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
         self.lbl_meta_category.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
         self.lbl_meta_vid_pid.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
+        
+        bg = "rgba(255, 255, 255, 0.03)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 0.03)"
+        border = "rgba(255, 255, 255, 0.08)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 0.08)"
+        self.meta_subcard.setStyleSheet(f"""
+            #metaSubcard {{
+                background-color: {bg};
+                border: 0.5px solid {border};
+                border-radius: 12px;
+            }}
+            QLabel {{
+                background: transparent;
+                border: none;
+            }}
+        """)
 
     def update_datetime_label(self):
         current_dt = QDateTime.currentDateTime()
