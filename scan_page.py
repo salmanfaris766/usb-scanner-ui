@@ -1,6 +1,6 @@
 import random
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from theme import theme_manager
 from widgets import GlassCard, GlassProgressBar
 
@@ -17,6 +17,8 @@ SCAN_LOGS = [
 ]
 
 class ScanPage(QWidget):
+    scan_completed = pyqtSignal(dict)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -141,6 +143,14 @@ class ScanPage(QWidget):
             while self.log_idx < len(SCAN_LOGS):
                 self.log_box.append(f"[{self.scan_progress}%] {SCAN_LOGS[self.log_idx]}")
                 self.log_idx += 1
+            
+            # Emit scan completed details
+            self.scan_completed.emit({
+                "date": "Today",
+                "files": random.randint(180, 320),
+                "threats": 0,
+                "duration": f"{random.randint(10, 18)} sec"
+            })
             return
             
         self.progress_bar.setValue(self.scan_progress)
