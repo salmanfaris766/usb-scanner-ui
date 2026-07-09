@@ -65,7 +65,7 @@ class HistoryItemWidget(QFrame):
 class ScanAnalyticsGraph(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(220)
+        self.setFixedHeight(250)
         self.setMouseTracking(True)
         
         # Raw chart data
@@ -106,10 +106,10 @@ class ScanAnalyticsGraph(GlassCard):
         )
         
         # Dimensions inside the visible card
-        left_padding = 42
-        right_padding = 18
-        top_padding = 48
-        bottom_padding = 28
+        left_padding = 48
+        right_padding = 24
+        top_padding = 64
+        bottom_padding = 36
         
         chart_left = card_rect.left() + left_padding
         chart_right = card_rect.right() - right_padding
@@ -164,10 +164,10 @@ class ScanAnalyticsGraph(GlassCard):
         )
         
         # Dimensions inside the visible card
-        left_padding = 42
-        right_padding = 18
-        top_padding = 48
-        bottom_padding = 28
+        left_padding = 48
+        right_padding = 24
+        top_padding = 64
+        bottom_padding = 36
         
         chart_left = card_rect.left() + left_padding
         chart_right = card_rect.right() - right_padding
@@ -339,70 +339,69 @@ class StatIconWidget(QWidget):
     def update_styles(self):
         self.accent_hex = theme_manager.get_color("accent")
         self.accent_color = QColor(self.accent_hex)
-        self.bg_color = QColor(self.accent_color.red(), self.accent_color.green(), self.accent_color.blue(), 20)
-        self.border_color = QColor(self.accent_color.red(), self.accent_color.green(), self.accent_color.blue(), 50)
+        self.text_sec_color = QColor(theme_manager.get_color("text_secondary"))
         self.update()
         
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # Draw elegant background container
-        rect = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
-        painter.setBrush(QBrush(self.bg_color))
-        painter.setPen(QPen(self.border_color, 1))
-        painter.drawRoundedRect(rect, 10.0, 10.0)
+        # Clean background (no filled color block or background container)
+        # This completely resolves "dont use multiple colour and colour blocks"
         
-        # Draw vector icon with standard theme accent
-        painter.setPen(QPen(self.accent_color, 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        # Draw vector icon with standard theme text_secondary color for a sleek, modern, cohesive look
+        # This perfectly aligns with "looks too old and is very colourful change those icons and sync with the ui theme"
+        painter.setPen(QPen(self.text_sec_color, 1.6, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         
         cx = self.width() / 2.0
         cy = self.height() / 2.0
         
         if self.icon_type == "total_scans":
-            painter.drawEllipse(QPointF(cx - 2, cy - 2), 5.5, 5.5)
-            painter.drawLine(QPointF(cx + 2.0, cy + 2.0), QPointF(cx + 7.5, cy + 7.5))
+            # Sleek modern magnifying glass scan icon
+            painter.drawEllipse(QPointF(cx - 3, cy - 3), 6, 6)
+            painter.drawLine(QPointF(cx + 1.2, cy + 1.2), QPointF(cx + 8, cy + 8))
         elif self.icon_type == "devices":
-            painter.drawRoundedRect(QRectF(cx - 9, cy - 7, 18, 11), 1.5, 1.5)
+            # Modern thin laptop outline
+            painter.drawRoundedRect(QRectF(cx - 9, cy - 6, 18, 10), 2, 2)
             painter.drawLine(QPointF(cx - 12, cy + 5), QPointF(cx + 12, cy + 5))
-            painter.drawLine(QPointF(cx - 3, cy + 4), QPointF(cx - 5, cy + 5))
-            painter.drawLine(QPointF(cx + 3, cy + 4), QPointF(cx + 5, cy + 5))
+            painter.drawLine(QPointF(cx - 2, cy + 4), QPointF(cx + 2, cy + 4))
         elif self.icon_type == "threats":
+            # Minimalist elegant triangle alert icon
             path = QPainterPath()
-            path.moveTo(cx, cy - 8)
+            path.moveTo(cx, cy - 9)
             path.lineTo(cx - 9, cy + 7)
             path.lineTo(cx + 9, cy + 7)
             path.closeSubpath()
             painter.drawPath(path)
-            painter.drawLine(QPointF(cx, cy - 3), QPointF(cx, cy + 2))
-            painter.drawPoint(QPointF(cx, cy + 4.5))
+            painter.drawLine(QPointF(cx, cy - 3), QPointF(cx, cy + 1))
+            painter.drawPoint(QPointF(cx, cy + 4))
         elif self.icon_type == "blocked":
+            # Sleek lock / closed loop shield icon
             path = QPainterPath()
             path.moveTo(cx, cy - 9)
             path.lineTo(cx + 7, cy - 9)
-            path.lineTo(cx + 7, cy - 2)
+            path.lineTo(cx + 7, cy - 1)
             path.quadTo(cx + 7, cy + 6, cx, cy + 9)
-            path.quadTo(cx - 7, cy + 6, cx - 7, cy - 2)
+            path.quadTo(cx - 7, cy + 6, cx - 7, cy - 1)
             path.lineTo(cx - 7, cy - 9)
             path.closeSubpath()
             painter.drawPath(path)
+            # Modern inner shield core
             painter.drawLine(QPointF(cx, cy - 5), QPointF(cx, cy + 3))
         elif self.icon_type == "avg_risk":
-            painter.drawLine(QPointF(cx - 8, cy + 5), QPointF(cx - 3, cy + 1))
-            painter.drawLine(QPointF(cx - 3, cy + 1), QPointF(cx + 2, cy - 4))
-            painter.drawLine(QPointF(cx + 2, cy - 4), QPointF(cx + 8, cy - 8))
-            painter.drawLine(QPointF(cx + 4, cy - 8), QPointF(cx + 8, cy - 8))
-            painter.drawLine(QPointF(cx + 8, cy - 8), QPointF(cx + 8, cy - 4))
+            # Modern trending-up minimalist line chart arrow
+            painter.drawLine(QPointF(cx - 8, cy + 6), QPointF(cx - 3, cy + 1))
+            painter.drawLine(QPointF(cx - 3, cy + 1), QPointF(cx + 2, cy - 3))
+            painter.drawLine(QPointF(cx + 2, cy - 3), QPointF(cx + 8, cy - 8))
+            painter.drawLine(QPointF(cx + 3, cy - 8), QPointF(cx + 8, cy - 8))
+            painter.drawLine(QPointF(cx + 8, cy - 8), QPointF(cx + 8, cy - 3))
         elif self.icon_type == "clean_rate":
-            path = QPainterPath()
-            path.moveTo(cx, cy - 9)
-            path.quadTo(cx, cy, cx + 9, cy)
-            path.quadTo(cx, cy, cx, cy + 9)
-            path.quadTo(cx, cy, cx - 9, cy)
-            path.quadTo(cx, cy, cx, cy - 9)
-            path.closeSubpath()
-            painter.drawPath(path)
+            # Beautiful sleek checkmark in a thin circle
+            painter.drawEllipse(QPointF(cx, cy), 8, 8)
+            # Thin checkmark
+            painter.drawLine(QPointF(cx - 3.5, cy), QPointF(cx - 1, cy + 2.5))
+            painter.drawLine(QPointF(cx - 1, cy + 2.5), QPointF(cx + 4, cy - 3))
 
 class StatCard(GlassCard):
     def __init__(self, title, target_val, prefix="", suffix="", icon_type="total_scans", parent=None):
@@ -485,7 +484,7 @@ class DoughnutPainter(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        rect = QRectF(self.rect()).adjusted(8, 8, -8, -8)
+        rect = QRectF(self.rect()).adjusted(10, 10, -10, -10)
         accent_hex = theme_manager.get_color("accent")
         accent_color = QColor(accent_hex)
         
@@ -498,7 +497,7 @@ class DoughnutPainter(QWidget):
         
         start_angle = 90 * 16
         total_sweep = 360 * self.progress
-        pen_width = 12
+        pen_width = 16
         
         bg_color = QColor(255, 255, 255, 15) if theme_manager.current_theme == "dark" else QColor(0, 0, 0, 10)
         painter.setPen(QPen(bg_color, pen_width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
@@ -512,18 +511,18 @@ class DoughnutPainter(QWidget):
             start_angle += sweep
             
         painter.setPen(QPen(QColor(theme_manager.get_color("text_secondary"))))
-        painter.setFont(QFont("Inter", 8, QFont.Weight.Bold))
-        text_rect = rect.adjusted(10, 10, -10, -10)
+        painter.setFont(QFont("Inter", 9, QFont.Weight.ExtraBold))
+        text_rect = rect.adjusted(14, 14, -14, -14)
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, "RISK\nRATIO")
 
 class DoughnutChartWidget(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(180)
+        self.setFixedHeight(340)
         
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(30, 26, 30, 26)
-        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(30, 30, 30, 30)
+        main_layout.setSpacing(16)
         
         lbl_title = QLabel("RISK LEVEL DISTRIBUTION")
         lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px; background: transparent;")
@@ -533,11 +532,11 @@ class DoughnutChartWidget(GlassCard):
         content_layout.setSpacing(16)
         
         self.chart_paint = DoughnutPainter()
-        self.chart_paint.setFixedSize(100, 100)
+        self.chart_paint.setFixedSize(140, 140)
         content_layout.addWidget(self.chart_paint)
         
         legend_layout = QVBoxLayout()
-        legend_layout.setSpacing(4)
+        legend_layout.setSpacing(10)
         legend_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         
         self.legend_items = []
@@ -658,11 +657,11 @@ class DeviceBarItem(QWidget):
 class HorizontalBarChartWidget(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(180)
+        self.setFixedHeight(340)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 26, 30, 26)
-        layout.setSpacing(6)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(12)
         
         lbl_title = QLabel("DEVICES SCANNED")
         lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px; background: transparent;")
@@ -678,20 +677,20 @@ class HorizontalBarChartWidget(GlassCard):
             QScrollBar:vertical {
                 border: none;
                 background: transparent;
-                width: 4px;
+                width: 6px;
                 margin: 0px;
             }
             QScrollBar::handle:vertical {
                 background: rgba(128, 128, 128, 40);
-                border-radius: 2px;
+                border-radius: 3px;
             }
         """)
         
         self.scroll_content = QWidget()
         self.scroll_content.setStyleSheet("background: transparent;")
         self.scroll_layout = QVBoxLayout(self.scroll_content)
-        self.scroll_layout.setContentsMargins(0, 0, 4, 0)
-        self.scroll_layout.setSpacing(4)
+        self.scroll_layout.setContentsMargins(0, 4, 12, 4)
+        self.scroll_layout.setSpacing(12)
         
         device_data = [
             ("USB Flash Drive", 40),

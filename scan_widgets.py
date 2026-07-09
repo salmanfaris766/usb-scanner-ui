@@ -416,14 +416,19 @@ class ThreatCard(GlassCard):
         
         # Malware detection area (hidden by default)
         self.malware_widget = QWidget()
+        self.malware_widget.setObjectName("malwareWidget")
         malware_layout = QVBoxLayout(self.malware_widget)
         malware_layout.setContentsMargins(12, 12, 12, 12)
         malware_layout.setSpacing(6)
         self.malware_widget.setStyleSheet(f"""
-            QWidget {{
+            QWidget#malwareWidget {{
                 background-color: rgba(255, 23, 68, 15);
-                border: 1px solid rgba(255, 23, 68, 30);
+                border: none;
                 border-radius: 8px;
+            }}
+            QLabel {{
+                border: none;
+                background-color: transparent;
             }}
         """)
         
@@ -525,56 +530,78 @@ class WarningCard(QWidget):
 class ScanStatsCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setFixedHeight(110)
+        
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(32, 20, 32, 20)
+        layout.setContentsMargins(32, 16, 32, 16)
         layout.setSpacing(16)
         
         self.threats_block = QVBoxLayout()
         self.threats_block.setSpacing(2)
+        self.threats_block.addStretch(1)
         lbl_threat_title = QLabel("THREATS DETECTED")
-        lbl_threat_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
+        lbl_threat_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px; border: none; background: transparent;")
         self.lbl_threat_val = QLabel("0")
-        self.lbl_threat_val.setStyleSheet("color: #00e676; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono';")
+        self.lbl_threat_val.setStyleSheet("color: #00e676; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
         self.threats_block.addWidget(lbl_threat_title)
         self.threats_block.addWidget(self.lbl_threat_val)
+        self.threats_block.addStretch(1)
         layout.addLayout(self.threats_block)
         
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.VLine)
-        sep.setStyleSheet(f"background-color: {theme_manager.get_color('glass_border')}; width: 1px;")
+        sep.setStyleSheet(f"background-color: {theme_manager.get_color('glass_border')}; width: 1px; border: none;")
         layout.addWidget(sep)
         
-        self.stats_grid = QGridLayout()
-        self.stats_grid.setSpacing(10)
+        self.stats_layout = QHBoxLayout()
+        self.stats_layout.setSpacing(24)
         
+        # Column 1: ELAPSED
+        elapsed_col = QVBoxLayout()
+        elapsed_col.setSpacing(2)
+        elapsed_col.addStretch(1)
         lbl_elapsed_title = QLabel("ELAPSED")
-        lbl_elapsed_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-family: 'Inter'; font-weight: 700;")
+        lbl_elapsed_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-family: 'Inter'; font-weight: 700; border: none; background: transparent;")
         self.lbl_elapsed_val = QLabel("00:00")
-        self.lbl_elapsed_val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 13px; font-family: 'JetBrains Mono'; font-weight: 700;")
+        self.lbl_elapsed_val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 13px; font-family: 'JetBrains Mono'; font-weight: 700; border: none; background: transparent;")
+        elapsed_col.addWidget(lbl_elapsed_title)
+        elapsed_col.addWidget(self.lbl_elapsed_val)
+        elapsed_col.addStretch(1)
         
+        # Column 2: REMAINING
+        remaining_col = QVBoxLayout()
+        remaining_col.setSpacing(2)
+        remaining_col.addStretch(1)
         lbl_remaining_title = QLabel("REMAINING")
-        lbl_remaining_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-family: 'Inter'; font-weight: 700;")
+        lbl_remaining_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-family: 'Inter'; font-weight: 700; border: none; background: transparent;")
         self.lbl_remaining_val = QLabel("00:00")
-        self.lbl_remaining_val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 13px; font-family: 'JetBrains Mono'; font-weight: 700;")
+        self.lbl_remaining_val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 13px; font-family: 'JetBrains Mono'; font-weight: 700; border: none; background: transparent;")
+        remaining_col.addWidget(lbl_remaining_title)
+        remaining_col.addWidget(self.lbl_remaining_val)
+        remaining_col.addStretch(1)
         
+        # Column 3: SPEED
+        speed_col = QVBoxLayout()
+        speed_col.setSpacing(2)
+        speed_col.addStretch(1)
         lbl_speed_title = QLabel("SPEED")
-        lbl_speed_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-family: 'Inter'; font-weight: 700;")
+        lbl_speed_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-family: 'Inter'; font-weight: 700; border: none; background: transparent;")
         self.lbl_speed_val = QLabel("0 MB/s")
-        self.lbl_speed_val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 13px; font-family: 'JetBrains Mono'; font-weight: 700;")
+        self.lbl_speed_val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 13px; font-family: 'JetBrains Mono'; font-weight: 700; border: none; background: transparent;")
+        speed_col.addWidget(lbl_speed_title)
+        speed_col.addWidget(self.lbl_speed_val)
+        speed_col.addStretch(1)
         
-        self.stats_grid.addWidget(lbl_elapsed_title, 0, 0)
-        self.stats_grid.addWidget(self.lbl_elapsed_val, 1, 0)
-        self.stats_grid.addWidget(lbl_remaining_title, 0, 1)
-        self.stats_grid.addWidget(self.lbl_remaining_val, 1, 1)
-        self.stats_grid.addWidget(lbl_speed_title, 0, 2)
-        self.stats_grid.addWidget(self.lbl_speed_val, 1, 2)
+        self.stats_layout.addLayout(elapsed_col, 1)
+        self.stats_layout.addLayout(remaining_col, 1)
+        self.stats_layout.addLayout(speed_col, 1)
         
-        layout.addLayout(self.stats_grid, 1)
+        layout.addLayout(self.stats_layout, 1)
         
     def set_threats(self, count):
         self.lbl_threat_val.setText(str(count))
         if count > 0:
-            self.lbl_threat_val.setStyleSheet("color: #ff1744; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono';")
+            self.lbl_threat_val.setStyleSheet("color: #ff1744; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
             self.pulse_anim = QVariantAnimation(self)
             self.pulse_anim.setDuration(300)
             self.pulse_anim.setStartValue(1.0)
@@ -582,7 +609,7 @@ class ScanStatsCard(GlassCard):
             self.pulse_anim.valueChanged.connect(self._on_pulse_threat)
             self.pulse_anim.start()
         else:
-            self.lbl_threat_val.setStyleSheet("color: #00e676; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono';")
+            self.lbl_threat_val.setStyleSheet("color: #00e676; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
             
     def _on_pulse_threat(self, scale):
         font = QFont("JetBrains Mono", int(18 * scale), QFont.Weight.Bold)
