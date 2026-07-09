@@ -491,7 +491,6 @@ class SettingsPage(QWidget):
         about_layout.addWidget(InfoRow("developer", "Version", "1.0.0"))
         about_layout.addWidget(InfoRow("python", "Framework", "Python + PyQt6"))
         about_layout.addWidget(InfoRow("cpu", "Target Device", "Raspberry Pi 7-inch Touchscreen"))
-        about_layout.addWidget(InfoRow("developer", "Developer", "Cybersecurity Internship Project"))
         scroll_layout.addWidget(self.card_about)
         
         # 8. Check for Updates Card

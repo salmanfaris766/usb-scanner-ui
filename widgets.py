@@ -127,8 +127,8 @@ class GlassCard(QFrame):
         base_rect = QRectF(self.rect())
         
         # Compute dynamic lifted and scaled rect
-        lift = 5.0 * self._hover_progress
-        scale = 1.02 * self._hover_progress
+        lift = 4.0 * self._hover_progress
+        scale = 1.01 * self._hover_progress
         
         card_rect = base_rect.adjusted(
             margin - scale,
@@ -139,50 +139,66 @@ class GlassCard(QFrame):
         
         # Draw soft shadow manually
         # This replaces QGraphicsDropShadowEffect to avoid painter conflicts and boost performance on low-power devices
-        shadow_opacity = int(45 + 30 * self._hover_progress)
-        for offset in range(1, 7):
+        shadow_opacity = int(35 + 25 * self._hover_progress)
+        for offset in range(1, 6):
             shadow_rect = card_rect.adjusted(-offset * 1.5, -offset * 0.5 + 2.0, offset * 1.5, offset * 1.5 + 3.0)
-            opacity = int((shadow_opacity / 6) * (7 - offset))
+            opacity = int((shadow_opacity / 5) * (6 - offset))
             painter.setBrush(QBrush(QColor(0, 0, 0, opacity)))
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(shadow_rect, 24.0 + offset, 24.0 + offset)
         
         # Draw background glass (slightly brighter on hover)
-        bg_color_str = theme_manager.get_color('glass_bg')
-        bg_color = QColor(bg_color_str) if bg_color_str.startswith('rgba') or bg_color_str.startswith('#') else QColor(13, 13, 13, 160)
+        bg_color = theme_manager.get_qcolor('glass_bg')
         
         if self._hover_progress > 0:
             if theme_manager.current_theme == "dark":
-                bg_color.setRed(min(255, bg_color.red() + int(12 * self._hover_progress)))
-                bg_color.setGreen(min(255, bg_color.green() + int(12 * self._hover_progress)))
-                bg_color.setBlue(min(255, bg_color.blue() + int(12 * self._hover_progress)))
-                bg_color.setAlpha(min(255, bg_color.alpha() + int(15 * self._hover_progress)))
+                bg_color.setRed(min(255, bg_color.red() + int(10 * self._hover_progress)))
+                bg_color.setGreen(min(255, bg_color.green() + int(10 * self._hover_progress)))
+                bg_color.setBlue(min(255, bg_color.blue() + int(10 * self._hover_progress)))
+                bg_color.setAlpha(min(255, bg_color.alpha() + int(10 * self._hover_progress)))
             else:
-                bg_color.setAlpha(min(255, bg_color.alpha() + int(20 * self._hover_progress)))
+                bg_color.setAlpha(min(255, bg_color.alpha() + int(15 * self._hover_progress)))
                 
         painter.setBrush(QBrush(bg_color))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(card_rect, 24.0, 24.0)
         
-        # Draw elegant Apple-style light reflection / linear gradient border
-        border_grad = QLinearGradient(card_rect.topLeft(), card_rect.bottomRight())
+        # Dynamic glass reflection (moving diagonal white/light-cyan sheen on hover)
+        if self._hover_progress > 0.01:
+            sheen_path = QPainterPath()
+            sheen_path.addRoundedRect(card_rect, 24.0, 24.0)
+            painter.save()
+            painter.setClipPath(sheen_path)
+            
+            # Coordinate sliding based on hover progress
+            start_x = card_rect.left() - card_rect.width() * 0.5 + (card_rect.width() * 1.5 * self._hover_progress)
+            end_x = start_x + card_rect.width() * 0.3
+            
+            sheen_grad = QLinearGradient(QPointF(start_x, card_rect.top()), QPointF(end_x, card_rect.bottom()))
+            sheen_grad.setColorAt(0.0, QColor(255, 255, 255, 0))
+            sheen_grad.setColorAt(0.5, QColor(255, 255, 255, int(25 * self._hover_progress)))
+            sheen_grad.setColorAt(1.0, QColor(255, 255, 255, 0))
+            
+            painter.setBrush(QBrush(sheen_grad))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRect(card_rect)
+            painter.restore()
+            
+        # Draw elegant cybernetic semi-transparent cyan border
+        accent_color_str = theme_manager.get_color("accent")
+        accent = QColor(accent_color_str)
         
-        if theme_manager.current_theme == "dark":
-            accent = QColor(theme_manager.get_color('accent'))
-            c0 = QColor(255, 255, 255, int(45 + 30 * self._hover_progress))
-            c1 = QColor(accent.red(), accent.green(), accent.blue(), int(25 * self._hover_progress))
-            c2 = QColor(255, 255, 255, int(5 + 5 * self._hover_progress))
-            
-            border_grad.setColorAt(0.0, c0)
-            border_grad.setColorAt(0.3, c1)
-            border_grad.setColorAt(1.0, c2)
-        else:
-            c0 = QColor(0, 0, 0, int(35 + 25 * self._hover_progress))
-            c1 = QColor(0, 0, 0, int(10 + 10 * self._hover_progress))
-            border_grad.setColorAt(0.0, c0)
-            border_grad.setColorAt(1.0, c1)
-            
-        pen = QPen(border_grad, 1.0)
+        # Base glass border
+        glass_border = theme_manager.get_qcolor("glass_border")
+        
+        # Blend base glass border with growing cyan/accent glow on hover
+        border_r = int(glass_border.red() + (accent.red() - glass_border.red()) * 0.4 * self._hover_progress)
+        border_g = int(glass_border.green() + (accent.green() - glass_border.green()) * 0.4 * self._hover_progress)
+        border_b = int(glass_border.blue() + (accent.blue() - glass_border.blue()) * 0.4 * self._hover_progress)
+        border_a = int(glass_border.alpha() + (60 - glass_border.alpha()) * self._hover_progress)
+        
+        pen_color = QColor(border_r, border_g, border_b, border_a)
+        pen = QPen(pen_color, 1.0)
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRoundedRect(card_rect, 24.0, 24.0)

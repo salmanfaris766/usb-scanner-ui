@@ -977,7 +977,7 @@ class HistoryPage(QWidget):
         self.analytics_graph = ScanAnalyticsGraph()
         layout.addWidget(self.analytics_graph)
         
-        # 2. Six Compact Summary Statistics Cards (Grid of 3 columns, 2 rows)
+        # 2. Six Compact Summary Statistics Cards (Grid of 2 columns, 3 rows for perfect 7-inch screen ratio)
         self.stats_grid = QGridLayout()
         self.stats_grid.setSpacing(12)
         
@@ -990,34 +990,26 @@ class HistoryPage(QWidget):
         
         self.stats_grid.addWidget(self.card_total_scans, 0, 0)
         self.stats_grid.addWidget(self.card_devices, 0, 1)
-        self.stats_grid.addWidget(self.card_threats, 0, 2)
-        self.stats_grid.addWidget(self.card_blocked, 1, 0)
-        self.stats_grid.addWidget(self.card_avg_risk, 1, 1)
-        self.stats_grid.addWidget(self.card_clean_rate, 1, 2)
+        self.stats_grid.addWidget(self.card_threats, 1, 0)
+        self.stats_grid.addWidget(self.card_blocked, 1, 1)
+        self.stats_grid.addWidget(self.card_avg_risk, 2, 0)
+        self.stats_grid.addWidget(self.card_clean_rate, 2, 1)
         
         layout.addLayout(self.stats_grid)
         
-        # 3. Second Analytics Row: Doughnut Distribution & Horizontal Device Bar Chart
-        row2_layout = QHBoxLayout()
-        row2_layout.setSpacing(16)
-        
+        # 3. Second Analytics Group: Doughnut Distribution & Horizontal Device Bar Chart (Stacked vertically for perfect responsive layout)
         self.doughnut_chart = DoughnutChartWidget()
         self.bar_chart = HorizontalBarChartWidget()
         
-        row2_layout.addWidget(self.doughnut_chart, 1)
-        row2_layout.addWidget(self.bar_chart, 1)
-        layout.addLayout(row2_layout)
+        layout.addWidget(self.doughnut_chart)
+        layout.addWidget(self.bar_chart)
         
-        # 4. Timeline & Quick Summary Row
-        row3_layout = QHBoxLayout()
-        row3_layout.setSpacing(16)
-        
+        # 4. Timeline & Quick Summary (Stacked vertically)
         self.timeline = TimelineWidget()
         self.quick_summary = QuickSummaryWidget()
         
-        row3_layout.addWidget(self.timeline, 1)
-        row3_layout.addWidget(self.quick_summary, 1)
-        layout.addLayout(row3_layout)
+        layout.addWidget(self.timeline)
+        layout.addWidget(self.quick_summary)
         
         # Label to separate dashboard from pre-existing incident list card
         self.lbl_list_title = QLabel("DETAILED ENDPOINT EVENT LOG")

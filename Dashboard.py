@@ -2120,6 +2120,264 @@ class PremiumDateTimeWidget(QFrame):
             }}
         """)
 
+class SystemTrayDropdown(GlassCard):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("systemTrayDropdown")
+        self.setFixedSize(300, 440)
+        self.hide()
+        
+        from PyQt6.QtWidgets import QGraphicsOpacityEffect
+        self.opacity_effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.opacity_effect)
+        self.opacity_effect.opacity_changed = None  # placeholder for property
+        self.opacity_effect.setOpacity(0.0)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(10)
+        
+        self.lbl_header = QLabel("SYSTEM STATUS")
+        self.lbl_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.lbl_header)
+        
+        self.sep = QFrame()
+        self.sep.setFrameShape(QFrame.Shape.HLine)
+        layout.addWidget(self.sep)
+        
+        # Wi-Fi Section
+        wifi_layout = QHBoxLayout()
+        lbl_wifi_icon = QLabel("📡")
+        lbl_wifi_icon.setStyleSheet("font-size: 13px; background: transparent; border: none;")
+        self.lbl_wifi_title = QLabel("Wi-Fi")
+        self.lbl_wifi_val = QLabel("Connected")
+        wifi_layout.addWidget(lbl_wifi_icon)
+        wifi_layout.addWidget(self.lbl_wifi_title)
+        wifi_layout.addStretch()
+        wifi_layout.addWidget(self.lbl_wifi_val)
+        layout.addLayout(wifi_layout)
+        
+        wifi_detail = QHBoxLayout()
+        wifi_detail.setContentsMargins(18, 0, 0, 0)
+        self.lbl_ssid_lbl = QLabel("SSID")
+        self.lbl_ssid_val = QLabel("USB Detector Lab")
+        wifi_detail.addWidget(self.lbl_ssid_lbl)
+        wifi_detail.addStretch()
+        wifi_detail.addWidget(self.lbl_ssid_val)
+        layout.addLayout(wifi_detail)
+        
+        wifi_sig = QHBoxLayout()
+        wifi_sig.setContentsMargins(18, 0, 0, 0)
+        self.lbl_sig_lbl = QLabel("Signal Strength")
+        self.lbl_sig_val = QLabel("Excellent")
+        wifi_sig.addWidget(self.lbl_sig_lbl)
+        wifi_sig.addStretch()
+        wifi_sig.addWidget(self.lbl_sig_val)
+        layout.addLayout(wifi_sig)
+        
+        self.sep2 = QFrame()
+        self.sep2.setFrameShape(QFrame.Shape.HLine)
+        layout.addWidget(self.sep2)
+        
+        # Bluetooth Section
+        bt_layout = QHBoxLayout()
+        lbl_bt_icon = QLabel("🔹")
+        lbl_bt_icon.setStyleSheet("font-size: 13px; background: transparent; border: none;")
+        self.lbl_bt_title = QLabel("Bluetooth")
+        self.lbl_bt_val = QLabel("Enabled")
+        bt_layout.addWidget(lbl_bt_icon)
+        bt_layout.addWidget(self.lbl_bt_title)
+        bt_layout.addStretch()
+        bt_layout.addWidget(self.lbl_bt_val)
+        layout.addLayout(bt_layout)
+        
+        bt_detail = QHBoxLayout()
+        bt_detail.setContentsMargins(18, 0, 0, 0)
+        self.lbl_bt_dev = QLabel("Connected Devices")
+        self.lbl_bt_dev_val = QLabel("1")
+        bt_detail.addWidget(self.lbl_bt_dev)
+        bt_detail.addStretch()
+        bt_detail.addWidget(self.lbl_bt_dev_val)
+        layout.addLayout(bt_detail)
+        
+        self.sep3 = QFrame()
+        self.sep3.setFrameShape(QFrame.Shape.HLine)
+        layout.addWidget(self.sep3)
+        
+        # Battery Section
+        bat_layout = QHBoxLayout()
+        lbl_bat_icon = QLabel("🔋")
+        lbl_bat_icon.setStyleSheet("font-size: 13px; background: transparent; border: none;")
+        self.lbl_bat_title = QLabel("Battery")
+        self.lbl_bat_val = QLabel("82%")
+        bat_layout.addWidget(lbl_bat_icon)
+        bat_layout.addWidget(self.lbl_bat_title)
+        bat_layout.addStretch()
+        bat_layout.addWidget(self.lbl_bat_val)
+        layout.addLayout(bat_layout)
+        
+        bat_chg = QHBoxLayout()
+        bat_chg.setContentsMargins(18, 0, 0, 0)
+        self.lbl_chg = QLabel("Charging")
+        self.lbl_chg_val = QLabel("No")
+        bat_chg.addWidget(self.lbl_chg)
+        bat_chg.addStretch()
+        bat_chg.addWidget(self.lbl_chg_val)
+        layout.addLayout(bat_chg)
+        
+        bat_rem = QHBoxLayout()
+        bat_rem.setContentsMargins(18, 0, 0, 0)
+        self.lbl_rem = QLabel("Estimated Remaining")
+        self.lbl_rem_val = QLabel("5 Hours")
+        bat_rem.addWidget(self.lbl_rem)
+        bat_rem.addStretch()
+        bat_rem.addWidget(self.lbl_rem_val)
+        layout.addLayout(bat_rem)
+        
+        self.sep4 = QFrame()
+        self.sep4.setFrameShape(QFrame.Shape.HLine)
+        layout.addWidget(self.sep4)
+        
+        # System Time Section
+        time_layout = QHBoxLayout()
+        lbl_time_icon = QLabel("🕒")
+        lbl_time_icon.setStyleSheet("font-size: 13px; background: transparent; border: none;")
+        self.lbl_time_title = QLabel("System Time")
+        time_layout.addWidget(lbl_time_icon)
+        time_layout.addWidget(self.lbl_time_title)
+        layout.addLayout(time_layout)
+        
+        self.lbl_tray_time = QLabel("12:00:00 PM")
+        self.lbl_tray_date = QLabel("Thursday, July 9, 2026")
+        layout.addWidget(self.lbl_tray_time)
+        layout.addWidget(self.lbl_tray_date)
+        
+        self.sep5 = QFrame()
+        self.sep5.setFrameShape(QFrame.Shape.HLine)
+        layout.addWidget(self.sep5)
+        
+        # Recent Notifications
+        notif_layout_title = QHBoxLayout()
+        lbl_notif_icon = QLabel("🔔")
+        lbl_notif_icon.setStyleSheet("font-size: 13px; background: transparent; border: none;")
+        self.lbl_notif_title = QLabel("Recent Notifications")
+        notif_layout_title.addWidget(lbl_notif_icon)
+        notif_layout_title.addWidget(self.lbl_notif_title)
+        layout.addLayout(notif_layout_title)
+        
+        self.lbl_notifs = []
+        notifs = [
+            "USB Monitoring Active",
+            "Database Updated Today",
+            "No Critical Threats"
+        ]
+        for n in notifs:
+            lbl_n = QLabel(f"• {n}")
+            layout.addWidget(lbl_n)
+            self.lbl_notifs.append(lbl_n)
+            
+        self.apply_theme_colors()
+        theme_manager.theme_changed.connect(self.apply_theme_colors)
+        
+    def apply_theme_colors(self):
+        accent = theme_manager.get_color('accent')
+        text_pri = theme_manager.get_color('text_primary')
+        text_sec = theme_manager.get_color('text_secondary')
+        
+        self.lbl_header.setStyleSheet(f"color: {accent}; font-family: 'Inter'; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; background: transparent; border: none;")
+        self.sep.setStyleSheet(f"color: {accent}33; max-height: 1px; border: none; background: {accent}33;")
+        self.lbl_wifi_title.setStyleSheet(f"color: {text_pri}; font-family: 'Inter'; font-size: 11px; font-weight: 700; background: transparent; border: none;")
+        self.lbl_wifi_val.setStyleSheet("color: #00e676; font-family: 'Inter'; font-size: 11px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_ssid_lbl.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; background: transparent; border: none;")
+        self.lbl_ssid_val.setStyleSheet(f"color: {text_pri}; font-family: 'JetBrains Mono'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_sig_lbl.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; background: transparent; border: none;")
+        self.lbl_sig_val.setStyleSheet("color: #00e676; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+        
+        self.lbl_bt_title.setStyleSheet(f"color: {text_pri}; font-family: 'Inter'; font-size: 11px; font-weight: 700; background: transparent; border: none;")
+        self.lbl_bt_val.setStyleSheet("color: #00e676; font-family: 'Inter'; font-size: 11px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_bt_dev.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; background: transparent; border: none;")
+        self.lbl_bt_dev_val.setStyleSheet(f"color: {text_pri}; font-family: 'JetBrains Mono'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+        
+        self.lbl_bat_title.setStyleSheet(f"color: {text_pri}; font-family: 'Inter'; font-size: 11px; font-weight: 700; background: transparent; border: none;")
+        self.lbl_bat_val.setStyleSheet("color: #00e676; font-family: 'Inter'; font-size: 11px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_chg.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; background: transparent; border: none;")
+        self.lbl_chg_val.setStyleSheet(f"color: {text_pri}; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_rem.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; background: transparent; border: none;")
+        self.lbl_rem_val.setStyleSheet(f"color: {text_pri}; font-family: 'Inter'; font-size: 10px; font-weight: bold; background: transparent; border: none;")
+        
+        self.lbl_time_title.setStyleSheet(f"color: {text_pri}; font-family: 'Inter'; font-size: 11px; font-weight: 700; background: transparent; border: none;")
+        self.lbl_tray_time.setStyleSheet(f"color: {text_pri}; font-family: 'JetBrains Mono'; font-size: 10px; font-weight: bold; margin-left: 18px; background: transparent; border: none;")
+        self.lbl_tray_date.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; margin-left: 18px; background: transparent; border: none;")
+        
+        self.lbl_notif_title.setStyleSheet(f"color: {text_pri}; font-family: 'Inter'; font-size: 11px; font-weight: 700; background: transparent; border: none;")
+        for lbl_n in self.lbl_notifs:
+            lbl_n.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; margin-left: 18px; background: transparent; border: none;")
+            
+        is_dark = (theme_manager.current_theme == "dark")
+        sep_color = "rgba(255, 255, 255, 15)" if is_dark else "rgba(0, 0, 0, 15)"
+        for sep in [self.sep2, self.sep3, self.sep4, self.sep5]:
+            sep.setStyleSheet(f"color: {sep_color}; max-height: 1px; border: none; background: {sep_color};")
+
+    def update_time_and_date(self):
+        curr = QDateTime.currentDateTime()
+        self.lbl_tray_time.setText(curr.toString("hh:mm:ss AP"))
+        self.lbl_tray_date.setText(curr.toString("dddd, MMMM d, yyyy"))
+
+    def animate_show(self, target_pos):
+        self.raise_()
+        self.show()
+        
+        if hasattr(self, "_anim_group") and self._anim_group.state() == QPropertyAnimation.State.Running:
+            self._anim_group.stop()
+            
+        # Slide down
+        from PyQt6.QtCore import QPoint
+        self.pos_anim = QPropertyAnimation(self, b"pos", self)
+        self.pos_anim.setDuration(250)
+        self.pos_anim.setStartValue(QPoint(target_pos.x(), target_pos.y() - 15))
+        self.pos_anim.setEndValue(target_pos)
+        self.pos_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        # Fade in
+        self.fade_anim = QPropertyAnimation(self.opacity_effect, b"opacity", self)
+        self.fade_anim.setDuration(250)
+        self.fade_anim.setStartValue(0.0)
+        self.fade_anim.setEndValue(1.0)
+        self.fade_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        from PyQt6.QtCore import QParallelAnimationGroup
+        self._anim_group = QParallelAnimationGroup(self)
+        self._anim_group.addAnimation(self.pos_anim)
+        self._anim_group.addAnimation(self.fade_anim)
+        self._anim_group.start()
+        
+    def animate_hide(self, target_pos, callback=None):
+        if hasattr(self, "_anim_group") and self._anim_group.state() == QPropertyAnimation.State.Running:
+            self._anim_group.stop()
+            
+        from PyQt6.QtCore import QPoint
+        self.pos_anim = QPropertyAnimation(self, b"pos", self)
+        self.pos_anim.setDuration(200)
+        self.pos_anim.setStartValue(self.pos())
+        self.pos_anim.setEndValue(QPoint(target_pos.x(), target_pos.y() - 15))
+        self.pos_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+        
+        self.fade_anim = QPropertyAnimation(self.opacity_effect, b"opacity", self)
+        self.fade_anim.setDuration(200)
+        self.fade_anim.setStartValue(self.opacity_effect.opacity())
+        self.fade_anim.setEndValue(0.0)
+        self.fade_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+        
+        from PyQt6.QtCore import QParallelAnimationGroup
+        self._anim_group = QParallelAnimationGroup(self)
+        self._anim_group.addAnimation(self.pos_anim)
+        self._anim_group.addAnimation(self.fade_anim)
+        
+        if callback:
+            self._anim_group.finished.connect(callback)
+        self._anim_group.finished.connect(self.hide)
+        self._anim_group.start()
+
 class DashboardPage(QWidget):
     device_authorized = pyqtSignal(dict)
     device_blocked = pyqtSignal(dict)
@@ -2211,11 +2469,17 @@ class DashboardPage(QWidget):
         notif_layout.addWidget(lbl_bell)
         notif_layout.addWidget(self.lbl_notif_count)
         
+        self.notif_tab.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.notif_tab.mousePressEvent = self.toggle_dropdown_tray
+        
         right_header.addWidget(self.lbl_datetime)
         right_header.addWidget(self.notif_tab)
         header_layout.addLayout(right_header)
         
         layout.addLayout(header_layout)
+        
+        # Absolute-positioned overlay system tray dropdown
+        self.dropdown_tray = SystemTrayDropdown(self.content_widget)
         
         # Interactive Emulation Terminal Card
         self.left_card = GlassCard()
@@ -2400,6 +2664,8 @@ class DashboardPage(QWidget):
     def update_datetime_label(self):
         current_dt = QDateTime.currentDateTime()
         self.lbl_datetime.setText(current_dt.toString("dddd, MMM d, yyyy - hh:mm:ss AP"))
+        if hasattr(self, 'dropdown_tray') and self.dropdown_tray.isVisible():
+            self.dropdown_tray.update_time_and_date()
         
         if self.is_timer_running:
             self.connection_time_elapsed += 1
@@ -2408,6 +2674,19 @@ class DashboardPage(QWidget):
             seconds = self.connection_time_elapsed % 60
             timer_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
             self.device_info_card.fields["timer"].setText(timer_str)
+
+    def toggle_dropdown_tray(self, event=None):
+        if self.dropdown_tray.isVisible() and self.dropdown_tray.opacity_effect.opacity() > 0.1:
+            from PyQt6.QtCore import QPointF
+            pos_in_parent = self.notif_tab.mapTo(self.content_widget, QPointF(0, 0).toPoint())
+            target_pos = QPointF(pos_in_parent.x() + self.notif_tab.width() - self.dropdown_tray.width(), pos_in_parent.y() + self.notif_tab.height() + 8).toPoint()
+            self.dropdown_tray.animate_hide(target_pos)
+        else:
+            from PyQt6.QtCore import QPointF
+            pos_in_parent = self.notif_tab.mapTo(self.content_widget, QPointF(0, 0).toPoint())
+            target_pos = QPointF(pos_in_parent.x() + self.notif_tab.width() - self.dropdown_tray.width(), pos_in_parent.y() + self.notif_tab.height() + 8).toPoint()
+            self.dropdown_tray.update_time_and_date()
+            self.dropdown_tray.animate_show(target_pos)
 
     def start_simulated_detection_timer(self, delay_ms):
         if hasattr(self, 'detection_timer') and self.detection_timer is not None:
