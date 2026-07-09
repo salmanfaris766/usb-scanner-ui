@@ -933,11 +933,9 @@ class DeviceInfoCard(GlassCard):
         }
         self.field_labels = []
         
-        # Set column stretch for the 4-column grid (Left Label, Left Value, Right Label, Right Value)
-        grid_layout_sec2.setColumnStretch(0, 2)
-        grid_layout_sec2.setColumnStretch(1, 3)
-        grid_layout_sec2.setColumnStretch(2, 2)
-        grid_layout_sec2.setColumnStretch(3, 3)
+        # Set column stretch for the 2-column grid (Label, Value)
+        grid_layout_sec2.setColumnStretch(0, 3)
+        grid_layout_sec2.setColumnStretch(1, 5)
         
         left_specs = [
             ("Manufacturer", "manufacturer"),
@@ -961,7 +959,9 @@ class DeviceInfoCard(GlassCard):
             ("Fingerprint", "fingerprint"),
         ]
         
-        for row_idx, (label, key) in enumerate(left_specs):
+        current_row = 0
+        
+        for label, key in left_specs:
             lbl = QLabel(label)
             lbl.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 600;")
             lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -970,13 +970,14 @@ class DeviceInfoCard(GlassCard):
             val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold;")
             val.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             
-            grid_layout_sec2.addWidget(lbl, row_idx, 0)
-            grid_layout_sec2.addWidget(val, row_idx, 1)
+            grid_layout_sec2.addWidget(lbl, current_row, 0)
+            grid_layout_sec2.addWidget(val, current_row, 1)
             
             self.fields[key] = val
             self.field_labels.append((lbl, val))
+            current_row += 1
             
-        for row_idx, (label, key) in enumerate(right_specs):
+        for label, key in right_specs:
             lbl = QLabel(label)
             lbl.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 10px; font-weight: 600;")
             lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -985,11 +986,12 @@ class DeviceInfoCard(GlassCard):
             val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 10px; font-weight: bold;")
             val.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             
-            grid_layout_sec2.addWidget(lbl, row_idx, 2)
-            grid_layout_sec2.addWidget(val, row_idx, 3)
+            grid_layout_sec2.addWidget(lbl, current_row, 0)
+            grid_layout_sec2.addWidget(val, current_row, 1)
             
             self.fields[key] = val
             self.field_labels.append((lbl, val))
+            current_row += 1
             
         # Hidden/dummy compatibility fields & panels
         self.fields["speed"] = QLabel()
@@ -2215,21 +2217,18 @@ class DashboardPage(QWidget):
         
         layout.addLayout(header_layout)
         
-        # Main Layout (Split View)
-        split_layout = QHBoxLayout()
-        split_layout.setSpacing(16)
-        
-        # Left Panel (Interactive USB Sandbox)
+        # Interactive Emulation Terminal Card
         self.left_card = GlassCard()
         left_layout = QVBoxLayout(self.left_card)
-        left_layout.setContentsMargins(32, 32, 32, 32)
+        left_layout.setContentsMargins(20, 20, 20, 20)
+        left_layout.setSpacing(12)
         
         lbl_usb_title = QLabel("DEVICE EMULATION TERMINAL")
         lbl_usb_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
         left_layout.addWidget(lbl_usb_title)
         
         self.usb_visualizer = AnimatedUSBWidget()
-        left_layout.addWidget(self.usb_visualizer, 1, Qt.AlignmentFlag.AlignCenter)
+        left_layout.addWidget(self.usb_visualizer, 0, Qt.AlignmentFlag.AlignCenter)
         
         self.live_monitor = LiveMonitoringPanel()
         left_layout.addWidget(self.live_monitor)
@@ -2252,39 +2251,12 @@ class DashboardPage(QWidget):
         self.btn_trigger.clicked.connect(self.trigger_physical_injection)
         self.btn_trigger.hide()
         
-        self.notification_center = NotificationCenter()
-        left_layout.addWidget(self.notification_center)
-        
-        split_layout.addWidget(self.left_card, 5)
-        
-        # Right Panel (Real-Time Metrics)
-        self.right_card = GlassCard()
-        right_layout = QVBoxLayout(self.right_card)
-        right_layout.setContentsMargins(32, 32, 32, 32)
-        right_layout.setSpacing(12)
-        
-        # Risk Ring View
-        risk_h_layout = QHBoxLayout()
-        self.risk_ring = CircularRiskRing()
-        risk_info_layout = QVBoxLayout()
-        self.lbl_threat_level = QLabel("THREAT SCORE: CLEAR")
-        self.lbl_threat_level.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-weight: 700; font-size: 14px;")
-        self.lbl_risk_sub = QLabel("No anomalies identified on active ports.")
-        self.lbl_risk_sub.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
-        self.lbl_risk_sub.setWordWrap(True)
-        risk_info_layout.addWidget(self.lbl_threat_level)
-        risk_info_layout.addWidget(self.lbl_risk_sub)
-        
-        risk_h_layout.addWidget(self.risk_ring)
-        risk_h_layout.addLayout(risk_info_layout, 1)
-        right_layout.addLayout(risk_h_layout)
-        
-        # Device Status Card (Metadata subcard enhanced)
-        self.meta_subcard = QWidget()
+        # 2. Device Status Card
+        self.meta_subcard = GlassCard()
         self.meta_subcard.setObjectName("metaSubcard")
         meta_layout = QVBoxLayout(self.meta_subcard)
-        meta_layout.setContentsMargins(12, 12, 12, 12)
-        meta_layout.setSpacing(6)
+        meta_layout.setContentsMargins(20, 20, 20, 20)
+        meta_layout.setSpacing(8)
         
         self.lbl_meta_title = QLabel("DEVICE STATUS")
         self.lbl_meta_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
@@ -2311,47 +2283,68 @@ class DashboardPage(QWidget):
         
         meta_layout.addWidget(self.lbl_meta_category)
         meta_layout.addWidget(self.lbl_meta_vid_pid)
-        right_layout.addWidget(self.meta_subcard)
         
-        self.system_health_card = SystemHealthCard()
-        right_layout.addWidget(self.system_health_card)
+        # Risk Ring View Card (Trust Score / Threat Rating)
+        self.risk_card = GlassCard()
+        risk_card_layout = QVBoxLayout(self.risk_card)
+        risk_card_layout.setContentsMargins(20, 20, 20, 20)
+        risk_card_layout.setSpacing(12)
         
-        split_layout.addWidget(self.right_card, 4)
+        risk_h_layout = QHBoxLayout()
+        self.risk_ring = CircularRiskRing()
+        risk_info_layout = QVBoxLayout()
+        self.lbl_threat_level = QLabel("THREAT SCORE: CLEAR")
+        self.lbl_threat_level.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-weight: 700; font-size: 14px;")
+        self.lbl_risk_sub = QLabel("No anomalies identified on active ports.")
+        self.lbl_risk_sub.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
+        self.lbl_risk_sub.setWordWrap(True)
+        risk_info_layout.addWidget(self.lbl_threat_level)
+        risk_info_layout.addWidget(self.lbl_risk_sub)
         
-        layout.addLayout(split_layout)
-        
-        # Row 2 (Grid of expanded details)
-        row2_layout = QHBoxLayout()
-        row2_layout.setSpacing(16)
-        
-        left_sub_col = QVBoxLayout()
-        left_sub_col.setSpacing(16)
-        
-        self.scan_history_overview_card = ScanHistoryOverviewCard()
-        left_sub_col.addWidget(self.scan_history_overview_card)
-        
-        self.device_info_card = DeviceInfoCard()
-        left_sub_col.addWidget(self.device_info_card)
-        
-        row2_layout.addLayout(left_sub_col, 5)
-        
-        right_sub_col = QVBoxLayout()
-        right_sub_col.setSpacing(16)
-        
-        self.device_class_card = DeviceClassificationCard()
-        self.storage_card = StorageInformationCard()
-        self.recommendation_card = SecurityRecommendationCard()
+        risk_h_layout.addWidget(self.risk_ring)
+        risk_h_layout.addLayout(risk_info_layout, 1)
+        risk_card_layout.addLayout(risk_h_layout)
+
+        # 3. Last Scan Summary
         self.last_scan_card = LastScanSummaryCard()
+        
+        # 4. Scan History Mini Analytics (small graph only)
+        self.scan_history_overview_card = ScanHistoryOverviewCard()
+        self.scan_history_overview_card.row_last_scan.hide()
+        self.scan_history_overview_card.row_recent_risk.hide()
+        self.scan_history_overview_card.row_weekly_scans.hide()
+        self.scan_history_overview_card.status_chip.hide()
+        
+        # 5. Device Information (Compact redesign)
+        self.device_info_card = DeviceInfoCard()
+        
+        # 6. Device Classification
+        self.device_class_card = DeviceClassificationCard()
+        
+        # 7. Storage Information
+        self.storage_card = StorageInformationCard()
+        
+        # 12. Device Activity / 13. Mini Activity Timeline (NotificationCenter)
+        self.notification_center = NotificationCenter()
+        
+        # Preserved sub-cards and other metrics
         self.trusted_devices_card = TrustedDevicesCard()
+        self.system_health_card = SystemHealthCard()
+        self.recommendation_card = SecurityRecommendationCard()
         
-        right_sub_col.addWidget(self.device_class_card)
-        right_sub_col.addWidget(self.storage_card)
-        right_sub_col.addWidget(self.recommendation_card)
-        right_sub_col.addWidget(self.last_scan_card)
-        right_sub_col.addWidget(self.trusted_devices_card)
-        
-        row2_layout.addLayout(right_sub_col, 4)
-        layout.addLayout(row2_layout)
+        # Single-column layout vertical sequence
+        layout.addWidget(self.left_card)
+        layout.addWidget(self.meta_subcard)
+        layout.addWidget(self.risk_card)
+        layout.addWidget(self.last_scan_card)
+        layout.addWidget(self.scan_history_overview_card)
+        layout.addWidget(self.device_info_card)
+        layout.addWidget(self.device_class_card)
+        layout.addWidget(self.storage_card)
+        layout.addWidget(self.trusted_devices_card)
+        layout.addWidget(self.system_health_card)
+        layout.addWidget(self.notification_center)
+        layout.addWidget(self.recommendation_card)
         
         self.root_layout.addWidget(scroll)
         

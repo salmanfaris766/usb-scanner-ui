@@ -6,7 +6,7 @@ from theme import theme_manager
 from widgets import GlassCard
 
 # Import new widgets from scan_widgets
-from scan_widgets import (CircularProgressRing, AnimatedUSBScanner, 
+from scan_widgets import (CircularProgressRing, AnimatedUSBScanner, GlassActionButton, 
                           InventoryCard, ThreatCard, WarningCard, ScanStatsCard, 
                           LogCard, ActivityCard, SuspiciousFilePopup, LogContainerCard)
 
@@ -51,6 +51,7 @@ class ScanPage(QWidget):
         card_layout.setContentsMargins(24, 24, 24, 24)
         card_layout.setSpacing(16)
         
+        # 1. Current Device Status
         self.lbl_scan_info = QLabel("Initiate deep scan to audit all low-level communication registers on USB endpoints.")
         self.lbl_scan_info.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 13px;")
         self.lbl_scan_info.setWordWrap(True)
@@ -62,65 +63,24 @@ class ScanPage(QWidget):
         self.log_box.hide()
         card_layout.addWidget(self.log_box)
         
-        # Main Horizontal Layout for Dual-Panel Interface
-        panels_layout = QHBoxLayout()
-        panels_layout.setSpacing(24)
-        
-        # --- LEFT PANEL (Visualizers, Ring & Controls) ---
-        left_panel = QVBoxLayout()
-        left_panel.setSpacing(16)
-        
-        # 4. Animated USB scanner visualizer
+        # 2. Large USB Scanning Animation (Unified with progress ring around it)
         self.usb_scanner = AnimatedUSBScanner()
-        left_panel.addWidget(self.usb_scanner, alignment=Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(self.usb_scanner, 0, Qt.AlignmentFlag.AlignCenter)
         
-        # 3. Circular progress ring
-        self.progress_bar = CircularProgressRing()
-        left_panel.addWidget(self.progress_bar, alignment=Qt.AlignmentFlag.AlignCenter)
+        # 3. Circular progress bar reference mapped directly to unified scanner to preserve all backward compatibility
+        self.progress_bar = self.usb_scanner
         
-        # 9. Estimated Scan Stats (Elapsed, Remaining, Speed, Threats)
-        self.stats_card = ScanStatsCard()
-        left_panel.addWidget(self.stats_card)
-        
-        # Scan triggering action
-        self.btn_scan = QPushButton("LAUNCH SYSTEM AUDIT")
-        self.btn_scan.clicked.connect(self.start_scan)
-        left_panel.addWidget(self.btn_scan)
-        
-        # 17. Post Scan Actions
-        self.post_scan_widget = QWidget()
-        post_scan_layout = QHBoxLayout(self.post_scan_widget)
-        post_scan_layout.setContentsMargins(0, 0, 0, 0)
-        post_scan_layout.setSpacing(10)
-        
-        self.btn_export = QPushButton("EXPORT REPORT")
-        self.btn_quarantine = QPushButton("QUARANTINE FILES")
-        self.btn_again = QPushButton("SCAN AGAIN")
-        self.btn_again.clicked.connect(self.start_scan)
-        
-        post_scan_layout.addWidget(self.btn_export)
-        post_scan_layout.addWidget(self.btn_quarantine)
-        post_scan_layout.addWidget(self.btn_again)
-        left_panel.addWidget(self.post_scan_widget)
-        self.post_scan_widget.hide()
-        
-        panels_layout.addLayout(left_panel, 1)
-        
-        # --- RIGHT PANEL (Logs, Activity timeline, and Warnings) ---
-        right_panel = QVBoxLayout()
-        right_panel.setSpacing(14)
-        
-        # 2. Activity Timeline
+        # 4. Live Scan Stages (Activity timeline)
         self.activity_card = ActivityCard()
-        right_panel.addWidget(self.activity_card)
+        card_layout.addWidget(self.activity_card)
         
-        # 6. File Inventory Card
+        # 5. File Inventory Card
         self.inventory_card = InventoryCard()
-        right_panel.addWidget(self.inventory_card)
+        card_layout.addWidget(self.inventory_card)
         
-        # 7. Threat Summary Card
+        # 6. Threat summary / Detection Card
         self.threat_card = ThreatCard()
-        right_panel.addWidget(self.threat_card)
+        card_layout.addWidget(self.threat_card)
         
         # Dynamic Warning Banners Area
         self.warnings_container = QWidget()
@@ -128,20 +88,40 @@ class ScanPage(QWidget):
         self.warnings_layout = QVBoxLayout(self.warnings_container)
         self.warnings_layout.setContentsMargins(0, 0, 0, 0)
         self.warnings_layout.setSpacing(8)
-        right_panel.addWidget(self.warnings_container)
+        card_layout.addWidget(self.warnings_container)
         
-        # 1. Premium Scrollable Logs Card synced with the layout
+        # 7. Risk Score Card / Estimated Scan Stats (Elapsed, Remaining, Speed, Threats)
+        self.stats_card = ScanStatsCard()
+        card_layout.addWidget(self.stats_card)
+        
+        # 9. Device Activity Logs scroll container
         self.log_container = LogContainerCard()
         self.logs_scroll = self.log_container.logs_scroll
         self.logs_layout = self.log_container.logs_layout
-        
-        # Set height of logs container card to leave room for other components
         self.log_container.setMinimumHeight(240)
-        right_panel.addWidget(self.log_container, 1)
+        card_layout.addWidget(self.log_container)
         
-        panels_layout.addLayout(right_panel, 1)
+        # 10. Post Scan Actions / Launch button
+        self.btn_scan = QPushButton("LAUNCH SYSTEM AUDIT")
+        self.btn_scan.clicked.connect(self.start_scan)
+        card_layout.addWidget(self.btn_scan)
         
-        card_layout.addLayout(panels_layout)
+        # Post Scan Actions container (Export, Quarantine, Scan again)
+        self.post_scan_widget = QWidget()
+        post_scan_layout = QHBoxLayout(self.post_scan_widget)
+        post_scan_layout.setContentsMargins(0, 0, 0, 0)
+        post_scan_layout.setSpacing(12)
+        
+        self.btn_export = GlassActionButton("EXPORT REPORT", "document")
+        self.btn_quarantine = GlassActionButton("QUARANTINE FILES", "shield")
+        self.btn_again = GlassActionButton("SCAN AGAIN", "refresh")
+        self.btn_again.clicked.connect(self.start_scan)
+        
+        post_scan_layout.addWidget(self.btn_export)
+        post_scan_layout.addWidget(self.btn_quarantine)
+        post_scan_layout.addWidget(self.btn_again)
+        card_layout.addWidget(self.post_scan_widget)
+        self.post_scan_widget.hide()
         
         # Wrap the GlassCard inside a premium transparent QScrollArea to ensure a smooth, unified page scroll flow
         self.scroll_area = QScrollArea()
@@ -228,74 +208,10 @@ class ScanPage(QWidget):
         """
         self.btn_scan.setStyleSheet(btn_style)
         
-        # Color-synced Export Button Style (Cyber Accent Glass look)
-        export_btn_style = f"""
-            QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}33, stop:1 {accent}11);
-                color: {text_primary};
-                border: 1px solid {accent}66;
-                border-radius: 18px;
-                padding: 10px 18px;
-                font-family: 'Inter';
-                font-weight: 700;
-                font-size: 11px;
-                letter-spacing: 0.5px;
-            }}
-            QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}66, stop:1 {accent}33);
-                border: 1px solid {accent};
-            }}
-            QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}88, stop:1 {accent}55);
-            }}
-        """
-        self.btn_export.setStyleSheet(export_btn_style)
-        
-        # Color-synced Quarantine Button Style (Security Alert alert-red)
-        quarantine_btn_style = f"""
-            QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff174444, stop:1 #ff174422);
-                color: {text_primary};
-                border: 1px solid #ff174466;
-                border-radius: 18px;
-                padding: 10px 18px;
-                font-family: 'Inter';
-                font-weight: 700;
-                font-size: 11px;
-                letter-spacing: 0.5px;
-            }}
-            QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff174488, stop:1 #ff174444);
-                border: 1px solid #ff1744;
-            }}
-            QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff1744aa, stop:1 #ff174477);
-            }}
-        """
-        self.btn_quarantine.setStyleSheet(quarantine_btn_style)
-        
-        # Color-synced Scan Again Button Style (Vibrant solid accent highlight)
-        again_btn_style = f"""
-            QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}aa, stop:1 {accent}66);
-                color: #ffffff;
-                border: 1px solid rgba(255, 255, 255, 30);
-                border-radius: 18px;
-                padding: 10px 18px;
-                font-family: 'Inter';
-                font-weight: 700;
-                font-size: 11px;
-                letter-spacing: 0.5px;
-            }}
-            QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}, stop:1 {accent}cc);
-                border: 1px solid {accent};
-            }}
-            QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}cc, stop:1 {accent}99);
-            }}
-        """
-        self.btn_again.setStyleSheet(again_btn_style)
+        # Update custom action buttons
+        self.btn_export.update()
+        self.btn_quarantine.update()
+        self.btn_again.update()
         
         # Update logs container theme styling
         self.log_container.update_styles()

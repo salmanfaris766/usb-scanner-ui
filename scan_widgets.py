@@ -42,12 +42,162 @@ class GreenCheckIcon(QWidget):
         if self.anim_progress > 0.2:
             pen = QPen(QColor("#ffffff"), 2.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
-            # Path of checkmark
             p = QPainterPath()
             p.moveTo(rect.left() + rect.width() * 0.3, rect.top() + rect.height() * 0.5)
             p.lineTo(rect.left() + rect.width() * 0.45, rect.top() + rect.height() * 0.65)
             p.lineTo(rect.left() + rect.width() * 0.7, rect.top() + rect.height() * 0.35)
             painter.drawPath(p)
+
+class GlassActionButton(QPushButton):
+    def __init__(self, text, icon_type, parent=None):
+        super().__init__(text, parent)
+        self.icon_type = icon_type  # "document", "shield", "refresh"
+        self.setMinimumSize(120, 36)
+        self.setMaximumSize(180, 40)
+        self._hover_progress = 0.0
+        self._press_progress = 0.0
+        
+        # Hover animation
+        self.hover_anim = QVariantAnimation(self)
+        self.hover_anim.setDuration(200)
+        self.hover_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.hover_anim.valueChanged.connect(self._on_hover_anim)
+        
+        # Press animation
+        self.press_anim = QVariantAnimation(self)
+        self.press_anim.setDuration(100)
+        self.press_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.press_anim.valueChanged.connect(self._on_press_anim)
+        
+    def _on_hover_anim(self, val):
+        self._hover_progress = val
+        self.update()
+        
+    def _on_press_anim(self, val):
+        self._press_progress = val
+        self.update()
+        
+    def enterEvent(self, event):
+        self.hover_anim.setDirection(QVariantAnimation.Direction.Forward)
+        if self.hover_anim.state() != QVariantAnimation.State.Running:
+            self.hover_anim.start()
+        super().enterEvent(event)
+        
+    def leaveEvent(self, event):
+        self.hover_anim.setDirection(QVariantAnimation.Direction.Backward)
+        if self.hover_anim.state() != QVariantAnimation.State.Running:
+            self.hover_anim.start()
+        super().leaveEvent(event)
+        
+    def mousePressEvent(self, event):
+        self.press_anim.setDirection(QVariantAnimation.Direction.Forward)
+        if self.press_anim.state() != QVariantAnimation.State.Running:
+            self.press_anim.start()
+        super().mousePressEvent(event)
+        
+    def mouseReleaseEvent(self, event):
+        self.press_anim.setDirection(QVariantAnimation.Direction.Backward)
+        if self.press_anim.state() != QVariantAnimation.State.Running:
+            self.press_anim.start()
+        super().mouseReleaseEvent(event)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        width = self.width()
+        height = self.height()
+        
+        scale = 1.0 + (0.03 * self._hover_progress) - (0.05 * self._press_progress)
+        
+        painter.save()
+        painter.translate(width / 2.0, height / 2.0)
+        painter.scale(scale, scale)
+        painter.translate(-width / 2.0, -height / 2.0)
+        
+        rect = QRectF(2, 2, width - 4, height - 4)
+        radius = height / 2.0 - 2.0
+        
+        accent_color = QColor(theme_manager.get_color("accent"))
+        
+        bg_color = QColor(255, 255, 255, 12) if theme_manager.current_theme == "dark" else QColor(0, 0, 0, 10)
+        hover_bg = QColor(accent_color.red(), accent_color.green(), accent_color.blue(), int(30 * self._hover_progress))
+        
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(rect, radius, radius)
+        
+        if self._hover_progress > 0:
+            painter.setBrush(QBrush(hover_bg))
+            painter.drawRoundedRect(rect, radius, radius)
+            
+        if self._hover_progress > 0:
+            glow_pen = QPen(QColor(accent_color.red(), accent_color.green(), accent_color.blue(), int(120 * self._hover_progress)), 1.5)
+            painter.setPen(glow_pen)
+        else:
+            border_color = QColor(255, 255, 255, 30) if theme_manager.current_theme == "dark" else QColor(0, 0, 0, 25)
+            painter.setPen(QPen(border_color, 1.0))
+            
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(rect, radius, radius)
+        
+        text = self.text()
+        font = QFont("Inter", 9, QFont.Weight.Bold)
+        painter.setFont(font)
+        fm = painter.fontMetrics()
+        text_width = fm.horizontalAdvance(text)
+        
+        icon_size = 14
+        spacing = 6
+        total_width = icon_size + spacing + text_width
+        
+        start_x = (width - total_width) / 2.0
+        icon_cy = height / 2.0
+        icon_cx = start_x + icon_size / 2.0
+        
+        icon_color = QColor(theme_manager.get_color("text_primary"))
+        if self._hover_progress > 0:
+            icon_color = QColor(
+                int(icon_color.red() * (1 - self._hover_progress) + accent_color.red() * self._hover_progress),
+                int(icon_color.green() * (1 - self._hover_progress) + accent_color.green() * self._hover_progress),
+                int(icon_color.blue() * (1 - self._hover_progress) + accent_color.blue() * self._hover_progress)
+            )
+            
+        painter.setPen(QPen(icon_color, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        
+        if self.icon_type == "document":
+            painter.drawRoundedRect(QRectF(icon_cx - 5, icon_cy - 7, 10, 14), 1.5, 1.5)
+            painter.drawLine(QPointF(icon_cx - 2.5, icon_cy - 3), QPointF(icon_cx + 2.5, icon_cy - 3))
+            painter.drawLine(QPointF(icon_cx - 2.5, icon_cy + 1), QPointF(icon_cx + 2.5, icon_cy + 1))
+        elif self.icon_type == "shield":
+            path = QPainterPath()
+            path.moveTo(icon_cx - 5.5, icon_cy - 6.5)
+            path.lineTo(icon_cx + 5.5, icon_cy - 6.5)
+            path.quadTo(icon_cx + 4.5, icon_cy + 1.5, icon_cx, icon_cy + 6.5)
+            path.quadTo(icon_cx - 4.5, icon_cy + 1.5, icon_cx - 5.5, icon_cy - 6.5)
+            painter.drawPath(path)
+        elif self.icon_type == "refresh":
+            rect_arrow = QRectF(icon_cx - 6, icon_cy - 6, 12, 12)
+            painter.drawArc(rect_arrow, 45 * 16, 270 * 16)
+            p_head = QPainterPath()
+            p_head.moveTo(icon_cx + 2.5, icon_cy - 5)
+            p_head.lineTo(icon_cx + 5.5, icon_cy - 3)
+            p_head.lineTo(icon_cx + 2.5, icon_cy - 1)
+            painter.drawPath(p_head)
+            
+        text_y = (height + fm.ascent() - fm.descent()) / 2.0
+        text_color = QColor(theme_manager.get_color("text_primary"))
+        if self._hover_progress > 0:
+            text_color = QColor(
+                int(text_color.red() * (1 - self._hover_progress) + accent_color.red() * self._hover_progress),
+                int(text_color.green() * (1 - self._hover_progress) + accent_color.green() * self._hover_progress),
+                int(text_color.blue() * (1 - self._hover_progress) + accent_color.blue() * self._hover_progress)
+            )
+        painter.setPen(QPen(text_color))
+        painter.drawText(QPointF(start_x + icon_size + spacing, text_y), text)
+        
+        painter.restore()
 
 class CircularProgressRing(QWidget):
     def __init__(self, parent=None):
@@ -146,7 +296,7 @@ class CircularProgressRing(QWidget):
 class AnimatedUSBScanner(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumSize(180, 160)
+        self.setMinimumSize(210, 210)
         self.angle = 0.0
         self.wave_pos = 0.0
         self.wave_direction = 1
@@ -154,10 +304,31 @@ class AnimatedUSBScanner(QWidget):
         self.particles = []
         self.scanning = False
         
+        # Circular Progress Ring properties
+        self.value = 0.0
+        self.display_value = 0.0
+        self.blue_glow_active = False
+        self.draw_check = False
+        
+        # Checkmark transition animation
+        self.check_anim_progress = 0.0
+        self.check_anim = QVariantAnimation(self)
+        self.check_anim.setDuration(450)
+        self.check_anim.setStartValue(0.0)
+        self.check_anim.setEndValue(1.0)
+        self.check_anim.setEasingCurve(QEasingCurve.Type.OutBack)
+        self.check_anim.valueChanged.connect(self._on_check_anim)
+        
+        # Progress value transition animation
+        self.anim = QVariantAnimation(self)
+        self.anim.setDuration(800)
+        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.anim.valueChanged.connect(self._on_anim_value)
+        
         for _ in range(16):
             self.particles.append({
-                'x': random.uniform(-65, 65),
-                'y': random.uniform(-65, 65),
+                'x': random.uniform(-60, 60),
+                'y': random.uniform(-60, 60),
                 'speed': random.uniform(0.6, 1.6),
                 'size': random.uniform(1.5, 3.5),
                 'angle': random.uniform(0, 2 * math.pi)
@@ -166,6 +337,36 @@ class AnimatedUSBScanner(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(16)
+
+    def setValue(self, val):
+        self.value = float(val)
+        if self.anim.state() == QVariantAnimation.State.Running:
+            self.anim.stop()
+        self.anim.setStartValue(self.display_value)
+        self.anim.setEndValue(self.value)
+        self.anim.start()
+
+    def _on_anim_value(self, val):
+        self.display_value = val
+        self.update()
+
+    def set_blue_glow(self, active):
+        self.blue_glow_active = active
+        self.update()
+
+    def set_draw_check(self, draw):
+        self.draw_check = draw
+        if draw:
+            self.check_anim.setStartValue(self.check_anim_progress)
+            self.check_anim.setEndValue(1.0)
+            self.check_anim.start()
+        else:
+            self.check_anim_progress = 0.0
+        self.update()
+
+    def _on_check_anim(self, val):
+        self.check_anim_progress = val
+        self.update()
 
     def set_scanning(self, active):
         self.scanning = active
@@ -184,12 +385,11 @@ class AnimatedUSBScanner(QWidget):
             for p in self.particles:
                 p['x'] += math.cos(p['angle']) * p['speed']
                 p['y'] += math.sin(p['angle']) * p['speed']
-                if p['x']**2 + p['y']**2 > 75**2:
+                if p['x']**2 + p['y']**2 > 70**2:
                     p['x'] = 0
                     p['y'] = 0
                     p['angle'] = random.uniform(0, 2 * math.pi)
         else:
-            # Slowly decay rotation
             self.angle = (self.angle + 0.3) % 360
             
         self.pulse = (self.pulse + 0.05) % (2 * math.pi)
@@ -199,70 +399,148 @@ class AnimatedUSBScanner(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        rect = QRectF(self.rect())
-        center = rect.center()
+        rect_widget = QRectF(self.rect())
+        center = rect_widget.center()
         cx, cy = center.x(), center.y()
         
         accent = QColor(theme_manager.get_color("accent"))
+        text_primary = QColor(theme_manager.get_color("text_primary"))
         
-        # Ambient Pulse Glow
-        glow_alpha = int(40 + 20 * math.sin(self.pulse))
-        if self.scanning:
-            glow_alpha = int(75 + 30 * math.sin(self.pulse * 1.5))
-        glow_color = QColor(accent)
-        glow_color.setAlpha(glow_alpha)
+        # --- DRAW CORE PROGRESS RING (Surrounding everything) ---
+        rect_ring = QRectF(self.rect()).adjusted(12, 12, -12, -12)
+        thickness = 8.0
+        draw_rect = rect_ring.adjusted(thickness/2, thickness/2, -thickness/2, -thickness/2)
         
-        painter.setBrush(QBrush(glow_color))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(center, 54.0, 54.0)
+        # Background Track
+        bg_pen = QPen(QColor(255, 255, 255, 12) if theme_manager.current_theme == "dark" else QColor(0, 0, 0, 12), thickness)
+        bg_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(bg_pen)
+        painter.drawEllipse(draw_rect)
         
-        # Draw central USB connector icon
-        pen_color = QColor(theme_manager.get_color("text_primary"))
-        painter.setPen(QPen(pen_color, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        
-        # Styling USB
-        hx, hy = int(cx - 15), int(cy - 24)
-        painter.drawRoundedRect(hx, hy, 30, 24, 4, 4)
-        painter.drawRect(int(cx - 9), int(cy - 20), 5, 5)
-        painter.drawRect(int(cx + 4), int(cy - 20), 5, 5)
-        painter.drawRect(int(cx - 18), int(cy), 36, 14)
-        painter.drawLine(int(cx), int(cy + 14), int(cx), int(cy + 32))
-        
-        # Rotating outer scanning ring
-        ring_pen = QPen(accent, 1.5, Qt.PenStyle.DashLine)
-        painter.setPen(ring_pen)
-        painter.save()
-        painter.translate(cx, cy)
-        painter.rotate(self.angle)
-        painter.drawEllipse(QPointF(0, 0), 70.0, 70.0)
-        painter.restore()
-        
-        if self.scanning:
-            # Moving scan wave
-            wave_y = cy - 35 + (self.wave_pos * 70)
-            wave_grad = QLinearGradient(cx - 55, wave_y, cx + 55, wave_y)
-            laser_color = QColor(accent)
-            laser_color.setAlpha(190)
-            transparent_color = QColor(accent)
-            transparent_color.setAlpha(0)
-            wave_grad.setColorAt(0, transparent_color)
-            wave_grad.setColorAt(0.5, laser_color)
-            wave_grad.setColorAt(1, transparent_color)
+        # Draw Progress Arc
+        if self.display_value > 0 or self.draw_check:
+            val_pct = 100.0 if self.draw_check else self.display_value
+            angle = (val_pct / 100.0) * 360.0
             
-            laser_pen = QPen(QBrush(wave_grad), 3)
-            painter.setPen(laser_pen)
-            painter.drawLine(int(cx - 60), int(wave_y), int(cx + 60), int(wave_y))
+            # Glow Effect under Arc
+            glow_color = QColor(0, 180, 216) if self.blue_glow_active else QColor(accent)
+            glow_opacity = int(40 + 15 * math.sin(self.pulse))
+            glow_color.setAlpha(max(0, min(255, glow_opacity)))
+            glow_pen = QPen(glow_color, thickness + 4.0)
+            glow_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(glow_pen)
+            painter.drawArc(draw_rect, 90 * 16, int(-angle * 16))
             
-            # Flowing particles
+            # Main Foreground Arc
+            main_color = QColor("#0077b6") if self.blue_glow_active else QColor(accent)
+            gradient = QLinearGradient(draw_rect.topLeft(), draw_rect.bottomRight())
+            gradient.setColorAt(0, main_color)
+            gradient.setColorAt(1, QColor("#00b4d8"))
+            
+            arc_pen = QPen(QBrush(gradient), thickness)
+            arc_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(arc_pen)
+            painter.drawArc(draw_rect, 90 * 16, int(-angle * 16))
+            
+        # --- DRAW USB SCANNER OR CHECKMARK TRANSITION ---
+        scan_opacity = 1.0 - self.check_anim_progress
+        
+        if scan_opacity > 0.001:
+            # Ambient Pulse Glow inside
+            glow_alpha = int((40 + 20 * math.sin(self.pulse)) * scan_opacity)
+            if self.scanning:
+                glow_alpha = int((75 + 30 * math.sin(self.pulse * 1.5)) * scan_opacity)
+            glow_color = QColor(accent)
+            glow_color.setAlpha(max(0, min(255, glow_alpha)))
+            
+            painter.setBrush(QBrush(glow_color))
             painter.setPen(Qt.PenStyle.NoPen)
-            for p in self.particles:
-                part_color = QColor(accent)
-                dist = math.sqrt(p['x']**2 + p['y']**2)
-                alpha = int(240 * (1.0 - dist / 75.0))
-                part_color.setAlpha(max(0, min(255, alpha)))
-                painter.setBrush(QBrush(part_color))
-                painter.drawEllipse(QPointF(cx + p['x'], cy + p['y']), p['size'], p['size'])
+            painter.drawEllipse(center, 54.0, 54.0)
+            
+            # Draw central USB connector icon
+            usb_color = QColor(text_primary)
+            usb_color.setAlpha(max(0, min(255, int(255 * scan_opacity))))
+            painter.setPen(QPen(usb_color, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            
+            # Draw USB details
+            hx, hy = int(cx - 15), int(cy - 24)
+            painter.drawRoundedRect(hx, hy, 30, 24, 4, 4)
+            painter.drawRect(int(cx - 9), int(cy - 20), 5, 5)
+            painter.drawRect(int(cx + 4), int(cy - 20), 5, 5)
+            painter.drawRect(int(cx - 18), int(cy), 36, 14)
+            painter.drawLine(int(cx), int(cy + 14), int(cx), int(cy + 32))
+            
+            # Rotating outer scanning dashed ring (just inside the progress ring)
+            ring_color = QColor(accent)
+            ring_color.setAlpha(max(0, min(255, int(180 * scan_opacity))))
+            ring_pen = QPen(ring_color, 1.5, Qt.PenStyle.DashLine)
+            painter.setPen(ring_pen)
+            painter.save()
+            painter.translate(cx, cy)
+            painter.rotate(self.angle)
+            painter.drawEllipse(QPointF(0, 0), 76.0, 76.0)
+            painter.restore()
+            
+            if self.scanning:
+                # Moving scan wave
+                wave_y = cy - 35 + (self.wave_pos * 70)
+                wave_grad = QLinearGradient(cx - 55, wave_y, cx + 55, wave_y)
+                laser_color = QColor(accent)
+                laser_color.setAlpha(int(190 * scan_opacity))
+                transparent_color = QColor(accent)
+                transparent_color.setAlpha(0)
+                wave_grad.setColorAt(0, transparent_color)
+                wave_grad.setColorAt(0.5, laser_color)
+                wave_grad.setColorAt(1, transparent_color)
+                
+                laser_pen = QPen(QBrush(wave_grad), 3)
+                painter.setPen(laser_pen)
+                painter.drawLine(int(cx - 60), int(wave_y), int(cx + 60), int(wave_y))
+                
+                # Flowing particles
+                painter.setPen(Qt.PenStyle.NoPen)
+                for p in self.particles:
+                    part_color = QColor(accent)
+                    dist = math.sqrt(p['x']**2 + p['y']**2)
+                    alpha = int(240 * (1.0 - dist / 70.0) * scan_opacity)
+                    part_color.setAlpha(max(0, min(255, alpha)))
+                    painter.setBrush(QBrush(part_color))
+                    painter.drawEllipse(QPointF(cx + p['x'], cy + p['y']), p['size'], p['size'])
+
+        # Draw checkmark transition on completion
+        if self.check_anim_progress > 0.001:
+            # Smoothly fade in green circle
+            green_color = QColor("#00e676")
+            bg_opacity = int(255 * self.check_anim_progress)
+            green_color.setAlpha(max(0, min(255, bg_opacity)))
+            
+            painter.setBrush(QBrush(green_color))
+            painter.setPen(Qt.PenStyle.NoPen)
+            
+            circle_radius = 42.0 * self.check_anim_progress
+            painter.drawEllipse(QPointF(cx, cy), circle_radius, circle_radius)
+            
+            if self.check_anim_progress > 0.2:
+                pen = QPen(QColor("#ffffff"), 4.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+                painter.setPen(pen)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                
+                p = QPainterPath()
+                p.moveTo(cx - 15 * self.check_anim_progress, cy)
+                p.lineTo(cx - 3 * self.check_anim_progress, cy + 12 * self.check_anim_progress)
+                p.lineTo(cx + 15 * self.check_anim_progress, cy - 12 * self.check_anim_progress)
+                painter.drawPath(p)
+                
+        # Draw percentage string below USB model when not complete
+        if not self.draw_check:
+            painter.setPen(QPen(QColor(text_primary)))
+            painter.setFont(QFont("Inter", 12, QFont.Weight.Bold))
+            val_pct = int(self.display_value)
+            text = f"{val_pct}%"
+            fm = painter.fontMetrics()
+            text_width = fm.horizontalAdvance(text)
+            painter.drawText(QPointF(cx - text_width / 2.0, cy + 45), text)
 
 class DeviceInfoCard(GlassCard):
     def __init__(self, parent=None):
@@ -548,10 +826,7 @@ class ScanStatsCard(GlassCard):
         self.threats_block.addStretch(1)
         layout.addLayout(self.threats_block)
         
-        sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.VLine)
-        sep.setStyleSheet(f"background-color: {theme_manager.get_color('glass_border')}; width: 1px; border: none;")
-        layout.addWidget(sep)
+        layout.addSpacing(20)  # Gentle spacing instead of harsh line separator
         
         self.stats_layout = QHBoxLayout()
         self.stats_layout.setSpacing(24)
