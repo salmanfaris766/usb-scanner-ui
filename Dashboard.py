@@ -51,18 +51,40 @@ class VectorIconWidget(QWidget):
             painter.drawArc(QRectF(cx - 9.5, cy - 5.0, 19.0, 19.0), 45 * 16, 90 * 16)
         elif self.icon_type == "bluetooth":
             path = QPainterPath()
-            path.moveTo(cx, cy - r)
+            # Standard single-stroke elegant Bluetooth rune
+            path.moveTo(cx - r * 0.4, cy - r * 0.4)
+            path.lineTo(cx + r * 0.4, cy + r * 0.4)
             path.lineTo(cx, cy + r)
-            path.lineTo(cx + r * 0.5, cy + r * 0.5)
-            path.lineTo(cx - r * 0.5, cy - r * 0.5)
-            path.lineTo(cx + r * 0.5, cy - r * 0.5)
-            path.lineTo(cx, cy)
+            path.lineTo(cx, cy - r)
+            path.lineTo(cx + r * 0.4, cy - r * 0.4)
+            path.lineTo(cx - r * 0.4, cy + r * 0.4)
             painter.drawPath(path)
         elif self.icon_type == "battery":
-            painter.drawRoundedRect(QRectF(cx - r + 1, cy - r * 0.5, 2 * r - 4, r), 2, 2)
-            painter.drawRect(QRectF(cx + r - 3, cy - 2, 2, 4))
+            # Neatly proportioned clean battery
+            bw = self.width() * 0.65
+            bh = self.height() * 0.42
+            bx = (self.width() - bw - 2.0) / 2.0
+            by = (self.height() - bh) / 2.0
+            
+            # Outer frame
+            painter.drawRoundedRect(QRectF(bx, by, bw, bh), 1.5, 1.5)
+            
+            # Positive terminal (tip)
+            tx = bx + bw
+            tw = 1.5
+            th = bh * 0.4
+            ty = by + (bh - th) / 2.0
             painter.setBrush(QBrush(self.color))
-            painter.drawRoundedRect(QRectF(cx - r + 3, cy - r * 0.5 + 2, 2 * r - 8, r - 4), 1, 1)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRoundedRect(QRectF(tx, ty, tw, th), 0.5, 0.5)
+            
+            # Inner charge level fill (82% charged)
+            gap = 1.5
+            inner_w = bw - 2.0 * gap
+            inner_h = bh - 2.0 * gap
+            inner_x = bx + gap
+            inner_y = by + gap
+            painter.drawRoundedRect(QRectF(inner_x, inner_y, inner_w * 0.82, inner_h), 0.5, 0.5)
         elif self.icon_type in ["clock", "time"]:
             painter.drawEllipse(QPointF(cx, cy), r, r)
             painter.drawLine(QPointF(cx, cy), QPointF(cx, cy - r + 3.0))
@@ -1437,7 +1459,7 @@ class ShieldPulseIndicator(QWidget):
         
         # Subtle glow ring
         glow = QColor(accent_color)
-        glow_alpha = int(40 + 50 * math.sin(self.pulse))
+        glow_alpha = max(0, min(255, int(40 + 50 * math.sin(self.pulse))))
         glow.setAlpha(glow_alpha)
         painter.setBrush(QBrush(glow))
         painter.setPen(Qt.PenStyle.NoPen)
@@ -1451,30 +1473,28 @@ class ShieldPulseIndicator(QWidget):
 class ShieldRowWidget(QWidget):
     def __init__(self, service_type, val_text, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(24) # Compact height for dense layout on 7" screen
+        self.setFixedHeight(22) # Extremely compact and clean height
         
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(4, 2, 4, 2)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
         
-        # Left side: Icon and name
-        self.icon_widget = ShieldServiceIcon(service_type, size=14)
+        # Left side: Name (Icon removed as requested)
         self.lbl_name = QLabel(service_type)
         self.lbl_name.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
+        self.lbl_name.setFixedWidth(140) # Keep name column consistent width to align status
         
-        layout.addWidget(self.icon_widget)
         layout.addWidget(self.lbl_name)
-        
-        layout.addStretch()
         
         # Right side: Pulsing dot and status text
         self.pulse_indicator = ShieldPulseIndicator()
         self.lbl_val = QLabel(val_text)
         self.lbl_val.setStyleSheet("color: #D97F4A; font-family: 'Inter'; font-size: 11px; font-weight: bold;")
-        self.lbl_val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.lbl_val.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         
         layout.addWidget(self.pulse_indicator)
         layout.addWidget(self.lbl_val)
+        layout.addStretch()
         
         self.hover_active = False
         
@@ -1502,8 +1522,8 @@ class SystemHealthCard(GlassCard):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(4) # Tighter vertical spacing
+        layout.setContentsMargins(24, 18, 24, 18)
+        layout.setSpacing(10)
         
         self.lbl_title = QLabel("SYSTEM SHIELD INTEGRITY")
         self.lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
@@ -1519,16 +1539,8 @@ class SystemHealthCard(GlassCard):
         ]
         
         self.rows = []
-        self.separators = []
         
         for idx, (label, val) in enumerate(items):
-            if idx > 0:
-                sep = QFrame()
-                sep.setFrameShape(QFrame.Shape.HLine)
-                sep.setStyleSheet(f"color: {theme_manager.get_color('accent')}12; max-height: 1px; border: none; background: {theme_manager.get_color('accent')}12;")
-                layout.addWidget(sep)
-                self.separators.append(sep)
-                
             row_widget = ShieldRowWidget(label, val)
             layout.addWidget(row_widget)
             self.rows.append((row_widget.lbl_name, row_widget.lbl_val))
@@ -1541,9 +1553,6 @@ class SystemHealthCard(GlassCard):
         for lbl_name, lbl_val in self.rows:
             lbl_name.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-family: 'Inter'; font-size: 11px;")
             lbl_val.setStyleSheet(f"color: {theme_manager.get_color('accent')}; font-family: 'Inter'; font-size: 11px; font-weight: bold;")
-            
-        for sep in self.separators:
-            sep.setStyleSheet(f"color: {theme_manager.get_color('accent')}12; max-height: 1px; border: none; background: {theme_manager.get_color('accent')}12;")
 
 class PulsingDotWidget(QWidget):
     def __init__(self, parent=None):
@@ -1571,7 +1580,7 @@ class PulsingDotWidget(QWidget):
         cx, cy = self.width() / 2, self.height() / 2
         
         accent = QColor(theme_manager.get_color("accent"))
-        glow_alpha = int(80 + 70 * math.sin(self.pulse))
+        glow_alpha = max(0, min(255, int(80 + 70 * math.sin(self.pulse))))
         accent.setAlpha(glow_alpha)
         
         painter.setBrush(QBrush(accent))
@@ -1913,14 +1922,16 @@ class LastScanSummaryCard(GlassCard):
         self.grid_widget = QWidget()
         self.grid_layout = QGridLayout(self.grid_widget)
         self.grid_layout.setContentsMargins(0, 0, 0, 0)
-        self.grid_layout.setHorizontalSpacing(24)
+        self.grid_layout.setHorizontalSpacing(16)
         self.grid_layout.setVerticalSpacing(6)
         
-        # Balance left and right columns
-        self.grid_layout.setColumnStretch(0, 2)
-        self.grid_layout.setColumnStretch(1, 3)
-        self.grid_layout.setColumnStretch(2, 2)
-        self.grid_layout.setColumnStretch(3, 3)
+        # Balance columns without stretching to the two ends
+        self.grid_layout.setColumnMinimumWidth(0, 100)
+        self.grid_layout.setColumnMinimumWidth(2, 100)
+        self.grid_layout.setColumnStretch(0, 0)
+        self.grid_layout.setColumnStretch(1, 1)
+        self.grid_layout.setColumnStretch(2, 0)
+        self.grid_layout.setColumnStretch(3, 1)
         
         self.fields = {}
         self.field_labels = []
@@ -1943,7 +1954,7 @@ class LastScanSummaryCard(GlassCard):
             val = QLabel(default_val)
             val.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-family: 'Inter'; font-size: 11px; font-weight: bold;")
             val.setWordWrap(True)
-            val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            val.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             
             self.grid_layout.addWidget(lbl, r_idx, c_idx)
             self.grid_layout.addWidget(val, r_idx, c_idx + 1)
@@ -2551,7 +2562,7 @@ class SystemTrayDropdown(GlassCard):
         self.notif_icon.set_color(accent)
         
         self.lbl_header.setStyleSheet(f"color: {accent}; font-family: 'Inter'; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; background: transparent; border: none;")
-        self.sep.setStyleSheet(f"color: {accent}33; max-height: 1px; border: none; background: {accent}33;")
+        self.sep.setStyleSheet("color: rgba(217, 127, 74, 0.10); max-height: 1px; border: none; background: rgba(217, 127, 74, 0.10);")
         self.lbl_wifi_title.setStyleSheet(f"color: {text_pri}; font-family: 'Inter'; font-size: 11px; font-weight: 700; background: transparent; border: none;")
         self.lbl_wifi_val.setStyleSheet("color: #D97F4A; font-family: 'Inter'; font-size: 11px; font-weight: bold; background: transparent; border: none;")
         self.lbl_ssid_lbl.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; background: transparent; border: none;")
@@ -2580,7 +2591,7 @@ class SystemTrayDropdown(GlassCard):
             lbl_n.setStyleSheet(f"color: {text_sec}; font-family: 'Inter'; font-size: 10px; margin-left: 18px; background: transparent; border: none;")
             
         is_dark = (theme_manager.current_theme == "dark")
-        sep_color = "rgba(255, 255, 255, 15)" if is_dark else "rgba(0, 0, 0, 15)"
+        sep_color = "rgba(255, 255, 255, 0.06)" if is_dark else "rgba(0, 0, 0, 0.06)"
         for sep in [self.sep2, self.sep3, self.sep4, self.sep5]:
             sep.setStyleSheet(f"color: {sep_color}; max-height: 1px; border: none; background: {sep_color};")
 
@@ -3236,3 +3247,4 @@ class DashboardPage(QWidget):
     def on_scan_completed(self, scan_data):
         self.last_scan_card.update_scan(scan_data)
         self.notification_center.add_log(f"Scan complete: {scan_data['files']} audited, {scan_data['threats']} threats.")
+

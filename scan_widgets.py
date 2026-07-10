@@ -147,46 +147,9 @@ class GlassActionButton(QPushButton):
         fm = painter.fontMetrics()
         text_width = fm.horizontalAdvance(text)
         
-        icon_size = 14
-        spacing = 6
-        total_width = icon_size + spacing + text_width
-        
-        start_x = (width - total_width) / 2.0
-        icon_cy = height / 2.0
-        icon_cx = start_x + icon_size / 2.0
-        
-        icon_color = QColor(theme_manager.get_color("text_primary"))
-        if self._hover_progress > 0:
-            icon_color = QColor(
-                int(icon_color.red() * (1 - self._hover_progress) + accent_color.red() * self._hover_progress),
-                int(icon_color.green() * (1 - self._hover_progress) + accent_color.green() * self._hover_progress),
-                int(icon_color.blue() * (1 - self._hover_progress) + accent_color.blue() * self._hover_progress)
-            )
-            
-        painter.setPen(QPen(icon_color, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        
-        if self.icon_type == "document":
-            painter.drawRoundedRect(QRectF(icon_cx - 5, icon_cy - 7, 10, 14), 1.5, 1.5)
-            painter.drawLine(QPointF(icon_cx - 2.5, icon_cy - 3), QPointF(icon_cx + 2.5, icon_cy - 3))
-            painter.drawLine(QPointF(icon_cx - 2.5, icon_cy + 1), QPointF(icon_cx + 2.5, icon_cy + 1))
-        elif self.icon_type == "shield":
-            path = QPainterPath()
-            path.moveTo(icon_cx - 5.5, icon_cy - 6.5)
-            path.lineTo(icon_cx + 5.5, icon_cy - 6.5)
-            path.quadTo(icon_cx + 4.5, icon_cy + 1.5, icon_cx, icon_cy + 6.5)
-            path.quadTo(icon_cx - 4.5, icon_cy + 1.5, icon_cx - 5.5, icon_cy - 6.5)
-            painter.drawPath(path)
-        elif self.icon_type == "refresh":
-            rect_arrow = QRectF(icon_cx - 6, icon_cy - 6, 12, 12)
-            painter.drawArc(rect_arrow, 45 * 16, 270 * 16)
-            p_head = QPainterPath()
-            p_head.moveTo(icon_cx + 2.5, icon_cy - 5)
-            p_head.lineTo(icon_cx + 5.5, icon_cy - 3)
-            p_head.lineTo(icon_cx + 2.5, icon_cy - 1)
-            painter.drawPath(p_head)
-            
+        text_x = (width - text_width) / 2.0
         text_y = (height + fm.ascent() - fm.descent()) / 2.0
+        
         text_color = QColor(theme_manager.get_color("text_primary"))
         if self._hover_progress > 0:
             text_color = QColor(
@@ -195,14 +158,14 @@ class GlassActionButton(QPushButton):
                 int(text_color.blue() * (1 - self._hover_progress) + accent_color.blue() * self._hover_progress)
             )
         painter.setPen(QPen(text_color))
-        painter.drawText(QPointF(start_x + icon_size + spacing, text_y), text)
+        painter.drawText(QPointF(text_x, text_y), text)
         
         painter.restore()
 
 class CircularProgressRing(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumSize(180, 180)
+        self.setMinimumSize(40, 40)
         self.value = 0.0
         self.display_value = 0.0
         self.blue_glow_active = False
@@ -248,50 +211,69 @@ class CircularProgressRing(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        rect = QRectF(self.rect()).adjusted(14, 14, -14, -14)
-        thickness = 10.0
+        w = self.width()
+        h = self.height()
+        thickness = max(4.0, min(w, h) * 0.08)
         
-        # Consistent bounding box for both background and arc
-        draw_rect = rect.adjusted(thickness/2, thickness/2, -thickness/2, -thickness/2)
+        # Margins to prevent clipping of the pen stroke width
+        margin = thickness / 2.0 + 2.0
+        draw_rect = QRectF(margin, margin, w - 2 * margin, h - 2 * margin)
+        
+        is_dark = (theme_manager.current_theme == "dark")
+        
+        # Draw dynamic glass fill background
+        inner_bg = QColor(255, 255, 255, 8) if is_dark else QColor(0, 0, 0, 5)
+        painter.setBrush(QBrush(inner_bg))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(draw_rect)
         
         # Background Track
-        bg_pen = QPen(QColor(255, 255, 255, 12) if theme_manager.current_theme == "dark" else QColor(0, 0, 0, 12), thickness)
+        track_color = QColor(255, 255, 255, 14) if is_dark else QColor(0, 0, 0, 12)
+        bg_pen = QPen(track_color, thickness)
         bg_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(bg_pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(draw_rect)
         
         # Draw Progress Arc
-        if self.display_value > 0 or self.draw_check:
-            val_pct = 100.0 if self.draw_check else self.display_value
+        val_pct = 100.0 if self.draw_check else self.display_value
+        if val_pct > 0.001:
             angle = (val_pct / 100.0) * 360.0
             
-            # Simple soft single-stroke glow beneath the main arc (no concentric grid lines)
+            # Subtle glow effect underneath the main arc
             glow_color = QColor("#C98A5E") if self.blue_glow_active else QColor(theme_manager.get_color("accent"))
-            glow_opacity = int(40 + 15 * math.sin(self.pulse))
+            glow_opacity = int(45 + 15 * math.sin(self.pulse))
             glow_color.setAlpha(max(0, min(255, glow_opacity)))
-            glow_pen = QPen(glow_color, thickness + 4.0)
+            glow_pen = QPen(glow_color, thickness + 2.5)
             glow_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(glow_pen)
             painter.drawArc(draw_rect, 90 * 16, int(-angle * 16))
             
-            # Main Arc
+            # Main Foreground Arc
             main_color = QColor("#C98A5E") if self.blue_glow_active else QColor(theme_manager.get_color("accent"))
             gradient = QLinearGradient(draw_rect.topLeft(), draw_rect.bottomRight())
             gradient.setColorAt(0, main_color)
-            gradient.setColorAt(1, QColor("#8A6455"))
+            gradient.setColorAt(1, QColor("#B5522B"))
             
             arc_pen = QPen(QBrush(gradient), thickness)
             arc_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(arc_pen)
             painter.drawArc(draw_rect, 90 * 16, int(-angle * 16))
             
-        # Draw inside - standard percentage string only (checkmark inside tick fully removed as requested)
-        painter.setPen(QPen(QColor(theme_manager.get_color("text_primary"))))
-        font_size = int(self.width() * 0.14)
-        painter.setFont(QFont("Inter", font_size, QFont.Weight.Bold))
-        val_pct = 100 if self.draw_check else int(self.display_value)
-        text = f"{val_pct}%"
-        painter.drawText(draw_rect, Qt.AlignmentFlag.AlignCenter, text)
+        # Draw inside percentage text - perfectly centered and styled
+        text_color = QColor(theme_manager.get_color("text_primary"))
+        painter.setPen(QPen(text_color))
+        
+        # Proportional crisp typography size
+        font_size = int(min(w, h) * 0.18)
+        font = QFont("JetBrains Mono", font_size, QFont.Weight.ExtraBold)
+        painter.setFont(font)
+        
+        display_val = 100 if self.draw_check else int(val_pct)
+        text = f"{display_val}%"
+        
+        # Draw precisely inside the full widget bounds to ensure perfect alignment
+        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, text)
 
 class AnimatedUSBScanner(QWidget):
     def __init__(self, parent=None):
@@ -532,15 +514,7 @@ class AnimatedUSBScanner(QWidget):
                 p.lineTo(cx + 15 * self.check_anim_progress, cy - 12 * self.check_anim_progress)
                 painter.drawPath(p)
                 
-        # Draw percentage string below USB model when not complete
-        if not self.draw_check:
-            painter.setPen(QPen(QColor(text_primary)))
-            painter.setFont(QFont("Inter", 12, QFont.Weight.Bold))
-            val_pct = int(self.display_value)
-            text = f"{val_pct}%"
-            fm = painter.fontMetrics()
-            text_width = fm.horizontalAdvance(text)
-            painter.drawText(QPointF(cx - text_width / 2.0, cy + 45), text)
+
 
 class DeviceInfoCard(GlassCard):
     def __init__(self, parent=None):
@@ -778,8 +752,8 @@ class WarningCard(QWidget):
             }}
         """)
         
-        self.lbl_icon = QLabel("⚠")
-        self.lbl_icon.setStyleSheet(f"color: {color}; font-size: 20px; font-weight: 900;")
+        self.lbl_icon = QLabel("●")
+        self.lbl_icon.setStyleSheet(f"color: {color}; font-size: 13px; font-weight: 900; margin-left: 4px; margin-right: 4px;")
         layout.addWidget(self.lbl_icon)
         
         v_layout = QVBoxLayout()
@@ -918,9 +892,10 @@ class LogCard(QWidget):
             }}
         """)
         
-        # Icon
-        self.icon_widget = GreenCheckIcon()
-        layout.addWidget(self.icon_widget)
+        # Sleek terminal chevron
+        self.lbl_chevron = QLabel("»")
+        self.lbl_chevron.setStyleSheet(f"color: {theme_manager.get_color('accent')}; font-size: 11px; font-family: 'JetBrains Mono'; font-weight: bold; background: transparent; border: none;")
+        layout.addWidget(self.lbl_chevron)
         
         # Message
         self.lbl_message = QLabel(message)
@@ -1121,28 +1096,34 @@ class SuspiciousFilePopup(QWidget):
                 color: {theme_manager.get_color('text_primary')};
                 border: 1px solid {theme_manager.get_color('glass_border')};
                 border-radius: 18px;
-                padding: 10px 20px;
+                min-height: 36px;
+                max-height: 36px;
+                padding: 0px 24px;
                 font-family: 'Inter';
                 font-weight: 700;
                 font-size: 11px;
             }}
             QPushButton:hover {{
                 background-color: {theme_manager.get_color('btn_hover')};
+                border: 1px solid {theme_manager.get_color('accent')};
             }}
         """)
         self.btn_isolate.setStyleSheet(f"""
             QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(181, 82, 43, 0.7), stop:1 rgba(181, 82, 43, 0.45));
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(181, 82, 43, 0.8), stop:1 rgba(181, 82, 43, 0.55));
                 color: #ffffff;
-                border: 1px solid rgba(181, 82, 43, 0.6);
+                border: 1px solid rgba(181, 82, 43, 0.8);
                 border-radius: 18px;
-                padding: 10px 20px;
+                min-height: 36px;
+                max-height: 36px;
+                padding: 0px 24px;
                 font-family: 'Inter';
                 font-weight: 700;
                 font-size: 11px;
             }}
             QPushButton:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B5522B, stop:1 #964423);
+                border: 1px solid #ffffff44;
             }}
         """)
         

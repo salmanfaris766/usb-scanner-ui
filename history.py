@@ -745,13 +745,13 @@ class TimelineItem(QWidget):
         self.lbl_status.setStyleSheet(f"""
             QLabel {{
                 color: {self.status_color};
-                background-color: {self.status_color}20;
-                border: 0.5px solid {self.status_color}50;
-                border-radius: 8px;
-                padding: 2px 8px;
+                background: transparent;
+                border: none;
+                padding: 0px;
                 font-family: 'Inter';
-                font-weight: 700;
-                font-size: 9px;
+                font-weight: 800;
+                font-size: 10px;
+                letter-spacing: 0.5px;
             }}
         """)
         
@@ -801,13 +801,13 @@ class TimelineItem(QWidget):
         self.lbl_status.setStyleSheet(f"""
             QLabel {{
                 color: {self.status_color};
-                background-color: {self.status_color}20;
-                border: 0.5px solid {self.status_color}50;
-                border-radius: 8px;
-                padding: 2px 8px;
+                background: transparent;
+                border: none;
+                padding: 0px;
                 font-family: 'Inter';
-                font-weight: 700;
-                font-size: 9px;
+                font-weight: 800;
+                font-size: 10px;
+                letter-spacing: 0.5px;
             }}
         """)
         self.update()

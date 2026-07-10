@@ -301,6 +301,7 @@ class AnimatedUSBWidget(QWidget):
         glow_alpha = int(35 + 20 * math.sin(self.pulse))
         if self.connected:
             glow_alpha = int(60 + 25 * math.sin(self.pulse * 1.5))
+        glow_alpha = max(0, min(255, glow_alpha))
         glow_color = QColor(accent)
         glow_color.setAlpha(glow_alpha)
         

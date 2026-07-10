@@ -179,7 +179,7 @@ class ToggleRow(QFrame):
         border = accent if hovered else theme_manager.get_color("glass_border")
         
         if hovered:
-            bg = "rgba(0, 229, 255, 12)" if theme_manager.current_theme == "dark" else "rgba(0, 229, 255, 8)"
+            bg = "rgba(217, 127, 74, 20)" if theme_manager.current_theme == "dark" else "rgba(217, 127, 74, 12)"
             if self.icon_type:
                 self.icon.color_key = "accent"
         else:
@@ -194,7 +194,21 @@ class ToggleRow(QFrame):
             self.icon.update()
             
         if self.btn_toggle.isChecked():
-            self.btn_toggle.setStyleSheet(f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}aa, stop:1 {accent}77); color: #ffffff; border-radius: 16px; font-family: 'Inter'; font-weight: 800; font-size: 10px; border: 1px solid rgba(255, 255, 255, 25); }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}, stop:1 {accent}cc); border: 1px solid {accent}; }}")
+            self.btn_toggle.setStyleSheet(f"""
+                QPushButton {{
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 127, 74, 180), stop:1 rgba(181, 82, 43, 140));
+                    color: #ffffff;
+                    border-radius: 16px;
+                    font-family: 'Inter';
+                    font-weight: 800;
+                    font-size: 10px;
+                    border: 1px solid rgba(255, 255, 255, 25);
+                }}
+                QPushButton:hover {{
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 127, 74, 235), stop:1 rgba(181, 82, 43, 195));
+                    border: 1px solid rgba(217, 127, 74, 255);
+                }}
+            """)
         else:
             self.btn_toggle.setStyleSheet(f"QPushButton {{ background: rgba(255, 255, 255, 10); color: {text_sec}; border-radius: 16px; font-family: 'Inter'; font-weight: 800; font-size: 10px; border: 1px solid {theme_manager.get_color('glass_border')}; }} QPushButton:hover {{ background: rgba(255, 255, 255, 20); border: 1px solid rgba(255, 255, 255, 40); }}")
 
@@ -258,7 +272,7 @@ class InfoRow(QFrame):
         border = accent if hovered else theme_manager.get_color("glass_border")
         
         if hovered:
-            bg = "rgba(0, 229, 255, 12)" if theme_manager.current_theme == "dark" else "rgba(0, 229, 255, 8)"
+            bg = "rgba(217, 127, 74, 20)" if theme_manager.current_theme == "dark" else "rgba(217, 127, 74, 12)"
             self.icon.color_key = "accent"
         else:
             bg = "rgba(255, 255, 255, 4)" if theme_manager.current_theme == "dark" else "rgba(15, 23, 42, 4)"
@@ -594,15 +608,41 @@ class SettingsPage(QWidget):
         
         self.btn_check.setStyleSheet(f"""
             QPushButton {{
-                background: rgba(255, 255, 255, 10) if "{theme_manager.current_theme}" == "dark" else rgba(0, 0, 0, 8);
+                background: {"rgba(255, 255, 255, 10)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 8)"};
                 color: {text_pri}; border-radius: 12px; font-family: 'Inter'; font-weight: 800; font-size: 11px; border: 1px solid {glass_border};
             }}
-            QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}33, stop:1 {accent}11); border: 1px solid {accent}; }}
+            QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 127, 74, 51), stop:1 rgba(217, 127, 74, 17)); border: 1px solid {accent}; }}
             QPushButton:disabled {{ background: rgba(255, 255, 255, 5); color: {text_sec}; border: 1px solid {glass_border}; }}
         """)
         
         for btn, name in [(self.btn_dark, "dark"), (self.btn_light, "light")]:
             if theme_manager.current_theme == name:
-                btn.setStyleSheet(f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}aa, stop:1 {accent}77); color: #ffffff; border-radius: 14px; font-family: 'Inter'; font-weight: 800; font-size: 10px; padding: 6px 14px; border: 1px solid rgba(255, 255, 255, 25); }}")
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 127, 74, 180), stop:1 rgba(181, 82, 43, 140));
+                        color: #ffffff;
+                        border-radius: 14px;
+                        font-family: 'Inter';
+                        font-weight: 800;
+                        font-size: 10px;
+                        padding: 6px 14px;
+                        border: 1px solid rgba(255, 255, 255, 25);
+                    }}
+                """)
             else:
-                btn.setStyleSheet(f"QPushButton {{ background: rgba(255, 255, 255, 10); color: {text_sec}; border-radius: 14px; font-family: 'Inter'; font-weight: 800; font-size: 10px; padding: 6px 14px; border: 1px solid {glass_border}; }} QPushButton:hover {{ background: rgba(255, 255, 255, 20); border: 1px solid rgba(255, 255, 255, 30); }}")
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background: rgba(255, 255, 255, 10);
+                        color: {text_sec};
+                        border-radius: 14px;
+                        font-family: 'Inter';
+                        font-weight: 800;
+                        font-size: 10px;
+                        padding: 6px 14px;
+                        border: 1px solid {glass_border};
+                    }}
+                    QPushButton:hover {{
+                        background: rgba(255, 255, 255, 20);
+                        border: 1px solid rgba(255, 255, 255, 30);
+                    }}
+                """)

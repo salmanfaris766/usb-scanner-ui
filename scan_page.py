@@ -1,14 +1,18 @@
 import random
+import re
+import math
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QTextEdit, QScrollArea, QFrame)
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+                             QPushButton, QTextEdit, QScrollArea, QFrame,
+                             QLineEdit, QGraphicsOpacityEffect, QStackedWidget)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPropertyAnimation, QEasingCurve, QVariantAnimation, QRectF, QPointF
+from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QFont, QPainterPath
 from theme import theme_manager
 from widgets import GlassCard
 
 # Import new widgets from scan_widgets
 from scan_widgets import (CircularProgressRing, AnimatedUSBScanner, GlassActionButton, 
-                          InventoryCard, ThreatCard, WarningCard, ScanStatsCard, 
-                          LogCard, ActivityCard, SuspiciousFilePopup, LogContainerCard)
+                           InventoryCard, ThreatCard, WarningCard, ScanStatsCard, 
+                           LogCard, ActivityCard, SuspiciousFilePopup, LogContainerCard)
 
 SCAN_LOGS = [
     "Initializing hardware port listener...",
@@ -21,6 +25,509 @@ SCAN_LOGS = [
     "Electrical integrity status: STABLE (5V, 100mA)",
     "Port scan successfully completed. 0 physical threat threats found.",
 ]
+
+class LoadingSpinner(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.angle = 0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._rotate)
+        self.timer.start(16) # ~60 fps
+        self.setFixedSize(36, 36)
+        
+    def _rotate(self):
+        self.angle = (self.angle + 6) % 360
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        rect = QRectF(3, 3, self.width() - 6, self.height() - 6)
+        pen = QPen(QColor(theme_manager.get_color('glass_border')), 3)
+        painter.setPen(pen)
+        painter.drawArc(rect, 0, 360 * 16)
+        
+        accent = QColor(theme_manager.get_color('accent'))
+        pen_active = QPen(accent, 3)
+        pen_active.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen_active)
+        painter.drawArc(rect, -self.angle * 16, 120 * 16)
+
+class ModernEmailIcon(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(48, 48)
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        cx, cy = self.width() / 2.0, self.height() / 2.0
+        accent = QColor(theme_manager.get_color('accent'))
+        
+        bg_glow = QColor(accent.red(), accent.green(), accent.blue(), 25)
+        painter.setBrush(QBrush(bg_glow))
+        painter.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 50), 1.0))
+        painter.drawEllipse(QPointF(cx, cy), 20, 20)
+        
+        path = QPainterPath()
+        x, y, w, h = cx - 13, cy - 9, 26, 18
+        path.addRoundedRect(QRectF(x, y, w, h), 2, 2)
+        
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(QColor(theme_manager.get_color('text_primary')), 2))
+        painter.drawPath(path)
+        
+        flap = QPainterPath()
+        flap.moveTo(x, y)
+        flap.lineTo(cx, cy + 1)
+        flap.lineTo(x + w, y)
+        painter.drawPath(flap)
+
+class CheckmarkWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(48, 48)
+        self.anim_progress = 0.0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._animate)
+        self.timer.start(20)
+        
+    def _animate(self):
+        self.anim_progress += 0.08
+        if self.anim_progress >= 1.0:
+            self.anim_progress = 1.0
+            self.timer.stop()
+        self.update()
+        
+    def reset(self):
+        self.anim_progress = 0.0
+        self.timer.start(20)
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        cx, cy = self.width() / 2.0, self.height() / 2.0
+        accent = QColor(theme_manager.get_color('accent'))
+        
+        bg_glow = QColor(accent.red(), accent.green(), accent.blue(), 30)
+        painter.setBrush(QBrush(bg_glow))
+        painter.setPen(QPen(accent, 2))
+        painter.drawEllipse(QPointF(cx, cy), 20, 20)
+        
+        path = QPainterPath()
+        start_x, start_y = cx - 9, cy - 1
+        mid_x, mid_y = cx - 2, cy + 6
+        end_x, end_y = cx + 9, cy - 6
+        
+        if self.anim_progress < 0.4:
+            p = self.anim_progress / 0.4
+            path.moveTo(start_x, start_y)
+            path.lineTo(start_x + (mid_x - start_x) * p, start_y + (mid_y - start_y) * p)
+        else:
+            p = (self.anim_progress - 0.4) / 0.6
+            path.moveTo(start_x, start_y)
+            path.lineTo(mid_x, mid_y)
+            path.lineTo(mid_x + (end_x - mid_x) * p, mid_y + (end_y - mid_y) * p)
+            
+        pen = QPen(QColor(theme_manager.get_color('text_primary')), 3)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(path)
+
+class ErrorWarningWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(48, 48)
+        self.pulse = 0.0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._pulse)
+        self.timer.start(30)
+        
+    def _pulse(self):
+        self.pulse = (self.pulse + 0.1) % (2 * math.pi)
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        cx, cy = self.width() / 2.0, self.height() / 2.0
+        crimson = QColor(181, 82, 43)
+        glow_val = int(25 + 15 * math.sin(self.pulse))
+        bg_glow = QColor(crimson.red(), crimson.green(), crimson.blue(), glow_val)
+        
+        painter.setBrush(QBrush(bg_glow))
+        painter.setPen(QPen(crimson, 2))
+        painter.drawEllipse(QPointF(cx, cy), 20, 20)
+        
+        pen = QPen(QColor(theme_manager.get_color('text_primary')), 3)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        
+        painter.drawLine(QPointF(cx, cy - 8), QPointF(cx, cy + 2))
+        painter.drawPoint(QPointF(cx, cy + 7))
+
+class EmailExportPopup(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("emailExportPopup")
+        if parent:
+            self.resize(parent.size())
+            parent.installEventFilter(self)
+            
+        self.card_scale = 1.0
+        self.opacity_effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.opacity_effect)
+        
+        self.fade_anim = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.fade_anim.setDuration(220)
+        
+        self.scale_anim = QVariantAnimation(self)
+        self.scale_anim.setDuration(260)
+        self.scale_anim.setEasingCurve(QEasingCurve.Type.OutBack)
+        self.scale_anim.setStartValue(0.95)
+        self.scale_anim.setEndValue(1.0)
+        self.scale_anim.valueChanged.connect(self._on_scale_anim)
+        
+        self.card = GlassCard(self)
+        self.card_layout = QVBoxLayout(self.card)
+        self.card_layout.setContentsMargins(24, 24, 24, 24)
+        self.card_layout.setSpacing(12)
+        
+        self.stack = QStackedWidget()
+        self.card_layout.addWidget(self.stack)
+        
+        self.setup_input_view()
+        self.setup_loading_view()
+        self.setup_success_view()
+        self.setup_error_view()
+        
+        self.setStyleSheet_custom()
+        theme_manager.theme_changed.connect(self.update_all_widgets)
+        
+        self.hide()
+        
+    def setup_input_view(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        lbl_title = QLabel("Export Scan Report")
+        lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 16px; font-weight: 800; font-family: 'Inter';")
+        lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        lbl_subtitle = QLabel("Enter an email address to receive the generated scan report.")
+        lbl_subtitle.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px; font-family: 'Inter';")
+        lbl_subtitle.setWordWrap(True)
+        lbl_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.email_icon = ModernEmailIcon()
+        
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("example@domain.com")
+        self.email_input.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        
+        self.lbl_helper = QLabel("The scan report will be sent as a PDF attachment.")
+        self.lbl_helper.setStyleSheet(f"color: {theme_manager.get_color('text_muted')}; font-size: 10px; font-family: 'Inter';")
+        self.lbl_helper.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_helper.setWordWrap(True)
+        
+        h_btn = QHBoxLayout()
+        h_btn.setSpacing(12)
+        h_btn.setContentsMargins(0, 8, 0, 0)
+        
+        self.btn_cancel = QPushButton("Cancel")
+        self.btn_send = QPushButton("Send Report")
+        
+        h_btn.addWidget(self.btn_cancel)
+        h_btn.addWidget(self.btn_send)
+        
+        layout.addWidget(self.email_icon, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl_title)
+        layout.addWidget(lbl_subtitle)
+        layout.addWidget(self.email_input)
+        layout.addWidget(self.lbl_helper)
+        layout.addLayout(h_btn)
+        
+        self.btn_cancel.clicked.connect(self.close_popup)
+        self.btn_send.clicked.connect(self.validate_and_send)
+        self.email_input.returnPressed.connect(self.validate_and_send)
+        
+        self.stack.addWidget(widget)
+        
+    def setup_loading_view(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.spinner = LoadingSpinner()
+        
+        lbl_title = QLabel("Sending Report")
+        lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 15px; font-weight: 800; font-family: 'Inter';")
+        lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        lbl_status = QLabel("Generating PDF document and transmitting via secure protocol...")
+        lbl_status.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px; font-family: 'Inter';")
+        lbl_status.setWordWrap(True)
+        lbl_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addStretch()
+        layout.addWidget(self.spinner, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl_title)
+        layout.addWidget(lbl_status)
+        layout.addStretch()
+        
+        self.stack.addWidget(widget)
+        
+    def setup_success_view(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(14)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.checkmark = CheckmarkWidget()
+        
+        lbl_title = QLabel("Report Sent Successfully")
+        lbl_title.setStyleSheet(f"color: {theme_manager.get_color('text_primary')}; font-size: 16px; font-weight: 800; font-family: 'Inter';")
+        lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.lbl_success_msg = QLabel("The scan report has been successfully sent to:\nexample@domain.com")
+        self.lbl_success_msg.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px; font-family: 'Inter';")
+        self.lbl_success_msg.setWordWrap(True)
+        self.lbl_success_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.btn_success_done = QPushButton("Done")
+        self.btn_success_done.clicked.connect(self.close_popup)
+        
+        layout.addWidget(self.checkmark, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl_title)
+        layout.addWidget(self.lbl_success_msg)
+        layout.addWidget(self.btn_success_done, 0, Qt.AlignmentFlag.AlignCenter)
+        
+        self.stack.addWidget(widget)
+        
+    def setup_error_view(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(14)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.error_icon = ErrorWarningWidget()
+        
+        lbl_title = QLabel("Failed to Send Report")
+        lbl_title.setStyleSheet("color: #B5522B; font-size: 16px; font-weight: 800; font-family: 'Inter';")
+        lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        lbl_error_msg = QLabel("Unable to send the report. Please try again later.")
+        lbl_error_msg.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px; font-family: 'Inter';")
+        lbl_error_msg.setWordWrap(True)
+        lbl_error_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        h_btn = QHBoxLayout()
+        h_btn.setSpacing(12)
+        h_btn.setContentsMargins(0, 4, 0, 0)
+        
+        self.btn_error_close = QPushButton("Close")
+        self.btn_error_retry = QPushButton("Retry")
+        
+        h_btn.addWidget(self.btn_error_close)
+        h_btn.addWidget(self.btn_error_retry)
+        
+        self.btn_error_close.clicked.connect(self.close_popup)
+        self.btn_error_retry.clicked.connect(self.validate_and_send)
+        
+        layout.addWidget(self.error_icon, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl_title)
+        layout.addWidget(lbl_error_msg)
+        layout.addLayout(h_btn)
+        
+        self.stack.addWidget(widget)
+        
+    def setStyleSheet_custom(self):
+        accent = theme_manager.get_color('accent')
+        text_primary = theme_manager.get_color('text_primary')
+        text_secondary = theme_manager.get_color('text_secondary')
+        text_muted = theme_manager.get_color('text_muted')
+        btn_bg = theme_manager.get_color('btn_bg')
+        btn_hover = theme_manager.get_color('btn_hover')
+        glass_border = theme_manager.get_color('glass_border')
+        
+        # Email Input Field Style (Glassmorphic)
+        bg_input = "rgba(255, 255, 255, 8)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 6)"
+        bg_input_focus = "rgba(255, 255, 255, 12)" if theme_manager.current_theme == "dark" else "rgba(0, 0, 0, 10)"
+        
+        input_style = f"""
+            QLineEdit {{
+                background-color: {bg_input};
+                color: {text_primary};
+                border: 1px solid {glass_border};
+                border-radius: 8px;
+                padding: 10px 14px;
+                font-family: 'Inter';
+                font-size: 12px;
+                min-height: 20px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {accent};
+                background-color: {bg_input_focus};
+            }}
+        """
+        self.email_input.setStyleSheet(input_style)
+        
+        # Cancel / Secondary Buttons Style (Outline / Glass overlay)
+        cancel_style = f"""
+            QPushButton {{
+                background-color: {btn_bg};
+                color: {text_primary};
+                border: 1px solid {glass_border};
+                border-radius: 18px;
+                min-height: 36px;
+                max-height: 36px;
+                padding: 0px 24px;
+                font-family: 'Inter';
+                font-weight: 700;
+                font-size: 11px;
+            }}
+            QPushButton:hover {{
+                background-color: {btn_hover};
+                border: 1px solid {accent};
+            }}
+            QPushButton:pressed {{
+                background-color: rgba(217, 127, 74, 0.35);
+                padding-top: 2px;
+            }}
+        """
+        self.btn_cancel.setStyleSheet(cancel_style)
+        self.btn_success_done.setStyleSheet(cancel_style)
+        self.btn_error_close.setStyleSheet(cancel_style)
+        
+        # Primary / Accent Buttons Style (Rust Solid Gradient)
+        send_style = f"""
+            QPushButton {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 127, 74, 180), stop:1 rgba(181, 82, 43, 140));
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 20);
+                border-radius: 18px;
+                min-height: 36px;
+                max-height: 36px;
+                padding: 0px 24px;
+                font-family: 'Inter';
+                font-weight: 700;
+                font-size: 11px;
+            }}
+            QPushButton:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 127, 74, 235), stop:1 rgba(181, 82, 43, 195));
+                border: 1px solid {accent};
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(181, 82, 43, 230), stop:1 rgba(150, 68, 35, 200));
+                padding-top: 2px;
+            }}
+        """
+        self.btn_send.setStyleSheet(send_style)
+        self.btn_error_retry.setStyleSheet(send_style)
+
+    def update_all_widgets(self):
+        self.setStyleSheet_custom()
+        self.update()
+        self.email_icon.update()
+        self.spinner.update()
+        self.checkmark.update()
+        self.error_icon.update()
+        
+    def validate_and_send(self):
+        email = self.email_input.text().strip()
+        
+        pattern = r'^[^@\s]+@[^@\s]+\.[^@\s]+$'
+        if not re.match(pattern, email):
+            self.lbl_helper.setText("Please enter a valid email address.")
+            self.lbl_helper.setStyleSheet("color: #B5522B; font-size: 11px; font-weight: bold; font-family: 'Inter';")
+            return
+            
+        self.lbl_helper.setText("The scan report will be sent as a PDF attachment.")
+        self.lbl_helper.setStyleSheet(f"color: {theme_manager.get_color('text_muted')}; font-size: 10px; font-family: 'Inter';")
+        
+        self.stack.setCurrentIndex(1) # loading
+        
+        # Simulate sending duration
+        QTimer.singleShot(1600, lambda: self.finish_sending(email))
+        
+    def finish_sending(self, email):
+        if email.lower() == "error@domain.com":
+            self.stack.setCurrentIndex(3) # error view
+        else:
+            self.lbl_success_msg.setText(f"The scan report has been successfully sent to:\n\n{email}")
+            self.stack.setCurrentIndex(2) # success view
+            self.checkmark.reset()
+
+    def show_popup(self):
+        self.email_input.clear()
+        self.lbl_helper.setText("The scan report will be sent as a PDF attachment.")
+        self.lbl_helper.setStyleSheet(f"color: {theme_manager.get_color('text_muted')}; font-size: 10px; font-family: 'Inter';")
+        self.stack.setCurrentIndex(0) # input view
+        
+        self.show()
+        self.raise_()
+        
+        self.opacity_effect.setOpacity(0.0)
+        
+        try:
+            self.fade_anim.finished.disconnect()
+        except:
+            pass
+            
+        self.fade_anim.setStartValue(0.0)
+        self.fade_anim.setEndValue(1.0)
+        self.fade_anim.start()
+        
+        self.scale_anim.start()
+        self.email_input.setFocus()
+        
+    def close_popup(self):
+        try:
+            self.fade_anim.finished.disconnect()
+        except:
+            pass
+        self.fade_anim.finished.connect(self.hide)
+        self.fade_anim.setStartValue(self.opacity_effect.opacity())
+        self.fade_anim.setEndValue(0.0)
+        self.fade_anim.start()
+
+    def _on_scale_anim(self, val):
+        self.card_scale = val
+        self._reposition()
+        
+    def _reposition(self):
+        if self.parent():
+            self.resize(self.parent().size())
+            card_width = int(410 * self.card_scale)
+            card_height = int(320 * self.card_scale)
+            self.card.setGeometry(
+                int((self.width() - card_width) / 2),
+                int((self.height() - card_height) / 2),
+                card_width,
+                card_height
+            )
+            
+    def eventFilter(self, obj, event):
+        if obj == self.parent() and event.type() == event.Type.Resize:
+            self._reposition()
+        return super().eventFilter(obj, event)
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(0, 0, 0, 160))
 
 class ScanPage(QWidget):
     scan_completed = pyqtSignal(dict)
@@ -104,7 +611,7 @@ class ScanPage(QWidget):
         # 10. Post Scan Actions / Launch button
         self.btn_scan = QPushButton("LAUNCH SYSTEM AUDIT")
         self.btn_scan.clicked.connect(self.start_scan)
-        card_layout.addWidget(self.btn_scan)
+        card_layout.addWidget(self.btn_scan, 0, Qt.AlignmentFlag.AlignCenter)
         
         # Post Scan Actions container (Export, Quarantine, Scan again)
         self.post_scan_widget = QWidget()
@@ -142,6 +649,7 @@ class ScanPage(QWidget):
                 background: rgba(128, 128, 128, 60);
                 min-height: 30px;
                 border-radius: 4px;
+                margin: 0px;
             }
             QScrollBar::handle:vertical:hover {
                 background: rgba(128, 128, 128, 90);
@@ -156,6 +664,10 @@ class ScanPage(QWidget):
         
         # Floating Suspicious File Popup (Absolute position over this widget)
         self.popup = SuspiciousFilePopup(self)
+        
+        # Floating Email Export Popup
+        self.email_popup = EmailExportPopup(self)
+        self.btn_export.clicked.connect(self.email_popup.show_popup)
         
         # Scan Timers setup
         self.scan_timer = QTimer(self)
@@ -186,24 +698,30 @@ class ScanPage(QWidget):
         # Main Launch Audit Button Style
         btn_style = f"""
             QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}aa, stop:1 {accent}77);
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 127, 74, 180), stop:1 rgba(181, 82, 43, 140));
                 color: #ffffff;
                 border: 1px solid rgba(255, 255, 255, 30);
-                border-radius: 22px;
-                padding: 12px 24px;
+                border-radius: 20px;
+                min-height: 40px;
+                max-height: 40px;
+                padding: 0px 32px;
                 font-family: 'Inter';
-                font-weight: 700;
-                font-size: 12px;
-                letter-spacing: 1px;
+                font-weight: 800;
+                font-size: 11px;
+                letter-spacing: 1.5px;
             }}
             QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}, stop:1 {accent}cc);
-                border: 1px solid {accent};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 127, 74, 235), stop:1 rgba(181, 82, 43, 195));
+                border: 1px solid rgba(217, 127, 74, 255);
             }}
             QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {accent}cc, stop:1 {accent}99);
-                padding-top: 13px;
-                padding-bottom: 11px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(181, 82, 43, 230), stop:1 rgba(150, 68, 35, 200));
+                padding-top: 2px;
+            }}
+            QPushButton:disabled {{
+                background: rgba(128, 128, 128, 30);
+                color: rgba(255, 255, 255, 60);
+                border: 1px solid rgba(255, 255, 255, 10);
             }}
         """
         self.btn_scan.setStyleSheet(btn_style)
