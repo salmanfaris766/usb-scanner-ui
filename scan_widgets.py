@@ -32,7 +32,7 @@ class GreenCheckIcon(QWidget):
         rect = QRectF(self.rect()).adjusted(1, 1, -1, -1)
         
         # Circle background
-        bg_color = QColor("#00e676")
+        bg_color = QColor("#D97F4A")
         bg_color.setAlpha(max(0, min(255, int(35 + 220 * self.anim_progress))))
         painter.setBrush(QBrush(bg_color))
         painter.setPen(Qt.PenStyle.NoPen)
@@ -266,7 +266,7 @@ class CircularProgressRing(QWidget):
             angle = (val_pct / 100.0) * 360.0
             
             # Simple soft single-stroke glow beneath the main arc (no concentric grid lines)
-            glow_color = QColor(0, 180, 216) if self.blue_glow_active else QColor(theme_manager.get_color("accent"))
+            glow_color = QColor("#C98A5E") if self.blue_glow_active else QColor(theme_manager.get_color("accent"))
             glow_opacity = int(40 + 15 * math.sin(self.pulse))
             glow_color.setAlpha(max(0, min(255, glow_opacity)))
             glow_pen = QPen(glow_color, thickness + 4.0)
@@ -275,10 +275,10 @@ class CircularProgressRing(QWidget):
             painter.drawArc(draw_rect, 90 * 16, int(-angle * 16))
             
             # Main Arc
-            main_color = QColor("#0077b6") if self.blue_glow_active else QColor(theme_manager.get_color("accent"))
+            main_color = QColor("#C98A5E") if self.blue_glow_active else QColor(theme_manager.get_color("accent"))
             gradient = QLinearGradient(draw_rect.topLeft(), draw_rect.bottomRight())
             gradient.setColorAt(0, main_color)
-            gradient.setColorAt(1, QColor("#00b4d8"))
+            gradient.setColorAt(1, QColor("#8A6455"))
             
             arc_pen = QPen(QBrush(gradient), thickness)
             arc_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
@@ -423,7 +423,7 @@ class AnimatedUSBScanner(QWidget):
             angle = (val_pct / 100.0) * 360.0
             
             # Glow Effect under Arc
-            glow_color = QColor(0, 180, 216) if self.blue_glow_active else QColor(accent)
+            glow_color = QColor("#C98A5E") if self.blue_glow_active else QColor(accent)
             glow_opacity = int(40 + 15 * math.sin(self.pulse))
             glow_color.setAlpha(max(0, min(255, glow_opacity)))
             glow_pen = QPen(glow_color, thickness + 4.0)
@@ -432,10 +432,10 @@ class AnimatedUSBScanner(QWidget):
             painter.drawArc(draw_rect, 90 * 16, int(-angle * 16))
             
             # Main Foreground Arc
-            main_color = QColor("#0077b6") if self.blue_glow_active else QColor(accent)
+            main_color = QColor("#C98A5E") if self.blue_glow_active else QColor(accent)
             gradient = QLinearGradient(draw_rect.topLeft(), draw_rect.bottomRight())
             gradient.setColorAt(0, main_color)
-            gradient.setColorAt(1, QColor("#00b4d8"))
+            gradient.setColorAt(1, QColor("#8A6455"))
             
             arc_pen = QPen(QBrush(gradient), thickness)
             arc_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
@@ -510,12 +510,12 @@ class AnimatedUSBScanner(QWidget):
 
         # Draw checkmark transition on completion
         if self.check_anim_progress > 0.001:
-            # Smoothly fade in green circle
-            green_color = QColor("#00e676")
+            # Smoothly fade in rust circle
+            rust_color = QColor("#D97F4A")
             bg_opacity = int(255 * self.check_anim_progress)
-            green_color.setAlpha(max(0, min(255, bg_opacity)))
+            rust_color.setAlpha(max(0, min(255, bg_opacity)))
             
-            painter.setBrush(QBrush(green_color))
+            painter.setBrush(QBrush(rust_color))
             painter.setPen(Qt.PenStyle.NoPen)
             
             circle_radius = 42.0 * self.check_anim_progress
@@ -681,7 +681,7 @@ class ThreatCard(GlassCard):
         v_level_layout.setSpacing(4)
         v_level_layout.setContentsMargins(0, 0, 0, 0)
         self.lbl_level = QLabel("SAFE")
-        self.lbl_level.setStyleSheet("color: #00e676; font-size: 18px; font-weight: 800; font-family: 'Inter';")
+        self.lbl_level.setStyleSheet("color: #D97F4A; font-size: 18px; font-weight: 800; font-family: 'Inter';")
         self.lbl_recommendation = QLabel("No anomalies detected. Device signature matches trusted definitions.")
         self.lbl_recommendation.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px; font-family: 'Inter';")
         self.lbl_recommendation.setWordWrap(True)
@@ -700,7 +700,7 @@ class ThreatCard(GlassCard):
         malware_layout.setSpacing(6)
         self.malware_widget.setStyleSheet(f"""
             QWidget#malwareWidget {{
-                background-color: rgba(255, 23, 68, 15);
+                background-color: rgba(181, 82, 43, 15);
                 border: none;
                 border-radius: 8px;
             }}
@@ -711,7 +711,7 @@ class ThreatCard(GlassCard):
         """)
         
         self.lbl_malware_title = QLabel("DETECTION TRACE:")
-        self.lbl_malware_title.setStyleSheet("color: #ff1744; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
+        self.lbl_malware_title.setStyleSheet("color: #B5522B; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px;")
         self.lbl_malware_name = QLabel("Threat Name: Trojan.Generic")
         self.lbl_malware_name.setStyleSheet("color: #ffffff; font-size: 11px; font-family: 'JetBrains Mono'; font-weight: 700;")
         self.lbl_malware_location = QLabel("Location: E:\\Downloads\\setup.exe")
@@ -735,21 +735,21 @@ class ThreatCard(GlassCard):
         self.lbl_recommendation.setText(rec)
         
         if level == "SAFE":
-            self.lbl_level.setStyleSheet("color: #00e676; font-size: 18px; font-weight: 800; font-family: 'Inter';")
+            self.lbl_level.setStyleSheet("color: #D97F4A; font-size: 18px; font-weight: 800; font-family: 'Inter';")
             self.malware_widget.hide()
         elif level == "LOW":
-            self.lbl_level.setStyleSheet("color: #ffeb3b; font-size: 18px; font-weight: 800; font-family: 'Inter';")
+            self.lbl_level.setStyleSheet("color: #C98A5E; font-size: 18px; font-weight: 800; font-family: 'Inter';")
             self.malware_widget.hide()
         elif level == "MEDIUM":
-            self.lbl_level.setStyleSheet("color: #ff9800; font-size: 18px; font-weight: 800; font-family: 'Inter';")
+            self.lbl_level.setStyleSheet("color: #C98A5E; font-size: 18px; font-weight: 800; font-family: 'Inter';")
             self.malware_widget.hide()
         else: # HIGH / CRITICAL
-            self.lbl_level.setStyleSheet("color: #ff1744; font-size: 18px; font-weight: 800; font-family: 'Inter';")
+            self.lbl_level.setStyleSheet("color: #B5522B; font-size: 18px; font-weight: 800; font-family: 'Inter';")
             if malware_name and malware_loc:
                 self.lbl_malware_name.setText(f"Threat Name: {malware_name}")
                 self.lbl_malware_location.setText(f"Location: {malware_loc}")
                 self.malware_widget.show()
-
+ 
 class WarningCard(QWidget):
     def __init__(self, title, description, risk_level="MEDIUM", parent=None):
         super().__init__(parent)
@@ -758,12 +758,12 @@ class WarningCard(QWidget):
         layout.setSpacing(10)
         
         color_map = {
-            "SAFE": "#00e676",
-            "LOW": "#ffeb3b",
-            "MEDIUM": "#ff9800",
-            "HIGH": "#ff1744"
+            "SAFE": "#D97F4A",
+            "LOW": "#C98A5E",
+            "MEDIUM": "#C98A5E",
+            "HIGH": "#B5522B"
         }
-        color = color_map.get(risk_level, "#ff9800")
+        color = color_map.get(risk_level, "#C98A5E")
         
         bg_color = "rgba(0, 0, 0, 40)" if theme_manager.current_theme == 'dark' else "rgba(255, 255, 255, 120)"
         self.setStyleSheet(f"""
@@ -820,7 +820,7 @@ class ScanStatsCard(GlassCard):
         lbl_threat_title = QLabel("THREATS DETECTED")
         lbl_threat_title.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-size: 10px; font-weight: 800; font-family: 'Inter'; letter-spacing: 0.8px; border: none; background: transparent;")
         self.lbl_threat_val = QLabel("0")
-        self.lbl_threat_val.setStyleSheet("color: #00e676; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
+        self.lbl_threat_val.setStyleSheet("color: #D97F4A; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
         self.threats_block.addWidget(lbl_threat_title)
         self.threats_block.addWidget(self.lbl_threat_val)
         self.threats_block.addStretch(1)
@@ -876,7 +876,7 @@ class ScanStatsCard(GlassCard):
     def set_threats(self, count):
         self.lbl_threat_val.setText(str(count))
         if count > 0:
-            self.lbl_threat_val.setStyleSheet("color: #ff1744; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
+            self.lbl_threat_val.setStyleSheet("color: #B5522B; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
             self.pulse_anim = QVariantAnimation(self)
             self.pulse_anim.setDuration(300)
             self.pulse_anim.setStartValue(1.0)
@@ -884,7 +884,7 @@ class ScanStatsCard(GlassCard):
             self.pulse_anim.valueChanged.connect(self._on_pulse_threat)
             self.pulse_anim.start()
         else:
-            self.lbl_threat_val.setStyleSheet("color: #00e676; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
+            self.lbl_threat_val.setStyleSheet("color: #D97F4A; font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; border: none; background: transparent;")
             
     def _on_pulse_threat(self, scale):
         font = QFont("JetBrains Mono", int(18 * scale), QFont.Weight.Bold)
@@ -1046,8 +1046,8 @@ class ActivityCard(GlassCard):
         accent = theme_manager.get_color("accent")
         if status == 'completed':
             item['dot'].setText("✔")
-            item['dot'].setStyleSheet("color: #00e676; font-size: 11px; font-weight: 900;")
-            item['name'].setStyleSheet("color: #00e676; font-size: 11px; font-family: 'Inter'; font-weight: 600;")
+            item['dot'].setStyleSheet("color: #D97F4A; font-size: 11px; font-weight: 900;")
+            item['name'].setStyleSheet("color: #D97F4A; font-size: 11px; font-family: 'Inter'; font-weight: 600;")
         elif status == 'scanning':
             item['dot'].setText("●")
             item['dot'].setStyleSheet(f"color: {accent}; font-size: 12px;")
@@ -1077,7 +1077,7 @@ class SuspiciousFilePopup(QWidget):
         self.card_layout.setSpacing(16)
         
         lbl_title = QLabel("SUSPICIOUS FILE DETECTED")
-        lbl_title.setStyleSheet("color: #ff1744; font-size: 13px; font-weight: 900; font-family: 'Inter'; letter-spacing: 1.5px;")
+        lbl_title.setStyleSheet("color: #B5522B; font-size: 13px; font-weight: 900; font-family: 'Inter'; letter-spacing: 1.5px;")
         lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.card_layout.addWidget(lbl_title)
         
@@ -1092,7 +1092,7 @@ class SuspiciousFilePopup(QWidget):
         self.card_layout.addWidget(self.lbl_filepath)
         
         self.lbl_reason = QLabel("Reason: Double extension detected (pdf.exe). High likelihood of masquerading malware.")
-        self.lbl_reason.setStyleSheet("color: #ff9800; font-size: 11px; font-family: 'Inter'; font-weight: 600;")
+        self.lbl_reason.setStyleSheet("color: #C98A5E; font-size: 11px; font-family: 'Inter'; font-weight: 600;")
         self.lbl_reason.setWordWrap(True)
         self.card_layout.addWidget(self.lbl_reason)
         
@@ -1132,9 +1132,9 @@ class SuspiciousFilePopup(QWidget):
         """)
         self.btn_isolate.setStyleSheet(f"""
             QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff1744aa, stop:1 #ff174477);
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(181, 82, 43, 0.7), stop:1 rgba(181, 82, 43, 0.45));
                 color: #ffffff;
-                border: 1px solid rgba(255, 23, 68, 50);
+                border: 1px solid rgba(181, 82, 43, 0.6);
                 border-radius: 18px;
                 padding: 10px 20px;
                 font-family: 'Inter';
@@ -1142,7 +1142,7 @@ class SuspiciousFilePopup(QWidget):
                 font-size: 11px;
             }}
             QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff1744, stop:1 #ff1744cc);
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B5522B, stop:1 #964423);
             }}
         """)
         

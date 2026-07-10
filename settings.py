@@ -223,7 +223,7 @@ class InfoRow(QFrame):
         if show_status_dot:
             self.dot = QWidget()
             self.dot.setFixedSize(6, 6)
-            self.dot.setStyleSheet("background-color: #10b981; border-radius: 3px; border: none;")
+            self.dot.setStyleSheet("background-color: #D97F4A; border-radius: 3px; border: none;")
             layout.addWidget(self.dot)
             
         if is_trusted:

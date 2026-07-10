@@ -36,34 +36,25 @@ class PremiumBackgroundWidget(QWidget):
         is_dark = (theme_manager.current_theme == "dark")
         
         if is_dark:
-            # Base dark graphite layer
-            painter.fillRect(self.rect(), QColor("#0B1118"))
-            
-            # Subtle deep blue linear gradient
-            grad = QLinearGradient(0, 0, 0, h)
-            grad.setColorAt(0.0, QColor("#111A24"))
-            grad.setColorAt(1.0, QColor("#0B1118"))
-            painter.fillRect(self.rect(), QBrush(grad))
-            
-            # Soft cybernetic radial cyan glow behind main contents
-            radial = QRadialGradient(w / 2.0, h / 2.2, max(w, h) * 0.7)
-            radial.setColorAt(0.0, QColor(0, 229, 255, 22))
-            radial.setColorAt(0.4, QColor(0, 180, 216, 6))
-            radial.setColorAt(1.0, QColor(0, 0, 0, 0))
+            # Smooth radial gradient for Monochrome Rust
+            radial = QRadialGradient(w / 2.0, h / 2.2, max(w, h) * 0.95)
+            radial.setColorAt(0.0, QColor("#0D0705"))
+            radial.setColorAt(0.5, QColor("#150A06"))
+            radial.setColorAt(1.0, QColor("#2A1108"))
             painter.fillRect(self.rect(), QBrush(radial))
         else:
-            # Base light grey layer
-            painter.fillRect(self.rect(), QColor("#f5f5f7"))
+            # Base light grey/cream layer
+            painter.fillRect(self.rect(), QColor("#FAF8F5"))
             
-            # Soft blue-ish linear gradient
+            # Soft warm cream-ish linear gradient
             grad = QLinearGradient(0, 0, 0, h)
-            grad.setColorAt(0.0, QColor("#e8edf5"))
-            grad.setColorAt(1.0, QColor("#f5f5f7"))
+            grad.setColorAt(0.0, QColor("#F4EEEC"))
+            grad.setColorAt(1.0, QColor("#FAF8F5"))
             painter.fillRect(self.rect(), QBrush(grad))
             
-            # Soft radial light-blue glow
+            # Soft radial light warm rust glow
             radial = QRadialGradient(w / 2.0, h / 2.2, max(w, h) * 0.7)
-            radial.setColorAt(0.0, QColor(0, 180, 216, 12))
+            radial.setColorAt(0.0, QColor(217, 127, 74, 10))
             radial.setColorAt(1.0, QColor(0, 0, 0, 0))
             painter.fillRect(self.rect(), QBrush(radial))
             

@@ -368,7 +368,7 @@ class CircularRiskRing(QWidget):
         
         accent = QColor(theme_manager.get_color("accent"))
         if self.threat_active:
-            accent = QColor("#ff1744")
+            accent = QColor("#B5522B")
             
         glass_border = QColor(theme_manager.get_color("glass_border"))
         if glass_border.alpha() == 0:

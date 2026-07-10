@@ -94,7 +94,7 @@ class NavButton(QPushButton):
 
     def update_style(self, hovered=False):
         accent = theme_manager.get_color('accent')
-        secondary = theme_manager.get_color('text_secondary')
+        secondary = theme_manager.get_color('text_muted')
         text_primary = theme_manager.get_color('text_primary')
         
         is_active = self.isChecked()
@@ -102,7 +102,7 @@ class NavButton(QPushButton):
         if is_active:
             self.hover_anim.stop()
             self.setFixedSize(140, 64)
-            bg = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 229, 255, 75), stop:1 rgba(0, 229, 255, 30))"
+            bg = "rgba(217, 127, 74, 0.15)"
             border = f"1px solid {accent}"
             color = text_primary
             icon_color = QColor(accent)

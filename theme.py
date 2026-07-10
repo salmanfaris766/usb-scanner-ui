@@ -1,25 +1,27 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 
 COLORS_DARK = {
-    'bg': '#0B1118',
-    'glass_bg': 'rgba(20, 30, 42, 22)',
-    'glass_border': 'rgba(0, 229, 255, 38)',
-    'accent': '#00e5ff',
-    'text_primary': '#ffffff',
-    'text_secondary': '#8898a6',
-    'btn_bg': 'rgba(255, 255, 255, 12)',
-    'btn_hover': 'rgba(0, 229, 255, 45)',
+    'bg': '#0D0705',
+    'glass_bg': 'rgba(23, 17, 13, 0.93)',
+    'glass_border': 'rgba(58, 36, 24, 0.75)',
+    'accent': '#D97F4A',
+    'text_primary': '#F2EDE8',
+    'text_secondary': '#B09080',
+    'text_muted': '#8A7568',
+    'btn_bg': 'rgba(217, 127, 74, 0.12)',
+    'btn_hover': 'rgba(217, 127, 74, 0.25)',
 }
 
 COLORS_LIGHT = {
-    'bg': '#f5f5f7',
-    'glass_bg': 'rgba(255, 255, 255, 180)',
-    'glass_border': 'rgba(0, 180, 216, 25)',
-    'accent': '#00b4d8',
-    'text_primary': '#1d1d1f',
-    'text_secondary': '#86868b',
+    'bg': '#FAF8F5',
+    'glass_bg': 'rgba(244, 238, 236, 0.90)',
+    'glass_border': 'rgba(210, 200, 194, 0.75)',
+    'accent': '#D97F4A',
+    'text_primary': '#2B2522',
+    'text_secondary': '#827771',
+    'text_muted': '#8A7568',
     'btn_bg': 'rgba(0, 0, 0, 8)',
-    'btn_hover': 'rgba(0, 180, 216, 30)',
+    'btn_hover': 'rgba(217, 127, 74, 0.18)',
 }
 
 class ThemeManager(QObject):
@@ -43,8 +45,13 @@ class ThemeManager(QObject):
                     r = int(parts[0].strip())
                     g = int(parts[1].strip())
                     b = int(parts[2].strip())
-                    a = int(parts[3].strip())
-                    return QColor(r, g, b, a)
+                    a_str = parts[3].strip()
+                    if "." in a_str:
+                        a_val = float(a_str)
+                        a = int(a_val * 255.0)
+                    else:
+                        a = int(a_str)
+                    return QColor(r, g, b, max(0, min(255, a)))
                 except ValueError:
                     pass
         elif color_str.startswith("rgb(") and color_str.endswith(")"):
